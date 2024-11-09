@@ -10,7 +10,7 @@ Functions are as follows: `abs, neg, cmp, gt, gte, lt, lte, eq, neq, cmp_toleran
 
 Feel free to contribute for any fixes or any missing functions to be added.
 
-If you are not planning to make something to the scale of [True Infinity](https://reinhardt-c.github.io/TrueInfinity), then use other libraries, such as, in ascending order:
+If you are not planning to make something to the scale of ~~[True Infinity](https://reinhardt-c.github.io/TrueInfinity)~~ <sup>yea ik it's a dead link</sup>, then use other libraries, such as, in ascending order:
 
 * [break_infinity.js](https://github.com/Patashu/break_infinity.js) by Patashu - e9e15
 * [decimal.js](https://github.com/MikeMcl/decimal.js) by MikeMcl - e9e15
