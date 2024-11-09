@@ -1,4 +1,4 @@
-# MegotaNum.js α1.0.0
+# MegotaNum.js α1.0.1
 A huge number library holding up to {10,9e15,1,1,2}.
 
 This reaches level f<sub>ω<sup>2</sup>+1</sub>, which the operation [megotion](https://googology.wikia.org/wiki/Megotion) also is at, hence the name.
