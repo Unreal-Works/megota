@@ -1,0 +1,26 @@
+{
+  "name": "megota_num.js",
+  "version": "0.0.0",
+  "description": "A JavaScript library that handles arithmetic for numbers as large as {10,9e15,1,1,2}. Inspired by Naruyoko",
+  "main": "MegotaNum.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sonic3XE/MegotaNum.js.git"
+  },
+  "keywords": [
+    "bignum",
+    "bignumber",
+    "bigdecimal",
+    "number",
+    "decimal"
+  ],
+  "author": "sonic3XE",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sonic3XE/MegotaNum.js/issues"
+  },
+  "homepage": "https://github.com/sonic3XE/MegotaNum.js"
+}
