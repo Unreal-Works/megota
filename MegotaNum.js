@@ -1515,8 +1515,8 @@
             if (b>=10) ++a;
             d=x.getOperatorIndex(arrows);
             x.array.splice(1,Math.ceil(d)-1);
-            x.array[0][1]=a;
-            if (Number.isInteger(d)) x.array[1][1]+=c;
+            x.array[0][2]=a;
+            if (Number.isInteger(d)) x.array[1][2]+=c;
             else x.array.splice(1,0,[...arrows,c]);
           }
         }else{
