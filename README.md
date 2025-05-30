@@ -1,27 +1,85 @@
-# MegotaNum.js α1.0.1
-A huge number library holding up to {10,9e15,1,1,2}.
+# MegotaNumber
 
-This reaches level f<sub>ω<sup>2</sup>+1</sub>, which the operation [megotion](https://googology.wikia.org/wiki/Megotion) also is at, hence the name.
-This library is inspired by Naruyoko.
+![Version](https://img.shields.io/npm/v/megotanumber)
+![License](https://img.shields.io/npm/l/megotanumber)
 
-Internally, it is represented as an sign, array, and layer. Sign is 1 or -1. Similarly, it has the same array from ExpantaNum but it has 3 entries (\[a,b,c\]) instead of 2 (\[a,b\]). Layer is a non-negative integer. They together represents sign\*N<sup>layer</sup>topLayer, where Nx is {10,10,10,x} (PsiCubed2's Letter notation).
+A powerful TypeScript/JavaScript library for handling arithmetic with extremely large numbers, supporting values up to $\{{10, 9e15, 1, 1, 2\}}$ and beyond standard number formats.
 
-Functions are as follows: `abs, neg, cmp, gt, gte, lt, lte, eq, neq, cmp_tolerance, gt_tolerance, gte_tolerance, lt_tolerance, lte_tolerance, eq_tolerance, neq_tolerance, min, max, ispos, isneg, isNaN, isFinite, isint, floor, ceiling, round, add, sub, mul, div, rec, mod, gamma, fact, pow, exp, sqrt, cbrt, root, log10, logBase, log(alias ln), lambertw, tetr, iteratedexp, iteratedlog, layeradd, layeradd10, ssrt, linear_sroot, slog, pent, arrow, chain, hyper, expansion, affordGeometricSeries, affordArithmeticSeries, sumGeometricSeries, sumArithmeticSeries, choose`. Of course, there are `toNumber()`, `toString()` (`toValue`, `toStringWithDecimalPlaces`, `toExponential`, `toFixed`, `toPrecision`), and `toJSON()`.
+## Features
 
-Feel free to contribute for any fixes or any missing functions to be added.
+- **Unlimited Magnitude**: Process numbers far beyond JavaScript's native limitations
+- **Extensive Operations**: Support for standard arithmetic, trigonometric functions, logarithms, tetration, and advanced hyperoperations
+- **Multiple Notations**: Parse and work with multiple notation formats for enormous numbers
+- **Full TypeScript Support**: Comprehensive type definitions for improved developer experience
 
-If you are not planning to make something to the scale of ~~[True Infinity](https://reinhardt-c.github.io/TrueInfinity)~~ <sup>yea ik it's a dead link</sup>, then use other libraries, such as, in ascending order:
+## Installation
 
-* [break_infinity.js](https://github.com/Patashu/break_infinity.js) by Patashu - e9e15
-* [decimal.js](https://github.com/MikeMcl/decimal.js) by MikeMcl - e9e15
-* [logarithmica_numerus_lite.js](https://github.com/aarextiaokhiao/magna_numerus.js/blob/master/logarithmica_numerus_lite.js) by Aarex Tiaokhiao - e1.8e308
-* [magna_numerus.js](https://github.com/aarextiaokhiao/magna_numerus.js/blob/master/magna_numerus.js) by Aarex Tiaokhiao - ee536870888
-* [confractus_numerus.js](https://github.com/aarextiaokhiao/magna_numerus.js/blob/master/confractus_numerus.js) by Aarex Tiaokhiao - ee9e15
-* [break_eternity.js](https://github.com/Patashu/break_eternity.js) by Patashu - 10^^1.8e308
-* [OmegaNum.js](https://github.com/Naruyoko/OmegaNum.js) by Naruyoko - 10{1000}9e15
-* [ExpantaNum.js](https://github.com/Naruyoko/ExpantaNum.js) by Naruyoko - {10,9e15,1,2}
+```bash
+npm install megotanumber
+```
 
-If you are using built-in constants: Constants can not be replaced directly, however **the properties of it can. As the constants are also used inside MegotaNum.js, modifying them could CAUSE SERIOUS ISSUES AND POTENTIALLY RENDER THE LIBRARY UNUSABLE.**
-Also there is a new constant named [General](https://googology.wikia.org/wiki/General) which is equal to {10,10,10,10} or N10.
+## Quick Start
 
-number library, big number, big num, bignumber, bignum, big integer, biginteger, bigint, incremental games, idle games, large numbers, huge numbers, googology, javascript
+```javascript
+import MegotaNumber from 'megotanumber';
+
+// Basic operations
+const a = MegotaNumber.fromString('10^100');  // 10 googol
+const b = MegotaNumber.fromNumber(1000);      // 1000
+
+// Arithmetic operations
+const sum = a.add(b);            // 10^100 + 1000
+const product = a.mul(b);        // 10^100 * 1000
+const power = b.pow(a);          // 1000^(10^100)
+
+// Advanced operations
+const tetrated = MegotaNumber.TEN.tetrate(MegotaNumber.fromNumber(3));  // 10^10^10
+const c = MegotaNumber.fromString('J^63');    // Using PsiCubed2's Letter Notation
+
+console.log(a.toString());        // "1e100"
+console.log(tetrated.toString()); // "10^^3"
+console.log(c.toString());        // "J^63"
+```
+
+## Notations Supported
+
+MegotaNumber incorporates several different notation systems for representing extraordinarily large numbers:
+
+### [Knuth's Up-Arrow Notation](https://en.wikipedia.org/wiki/Knuth%27s_up-arrow_notation)
+- $a ↑↑ b$ refers to a tetrated to b
+- Example: $10 ↑↑ 3$ represents $10^{10^{10}}$
+
+### [X-Sequence Hyper Notation](https://googology.fandom.com/wiki/X-Sequence_Hyper-Exponential_Notation)
+- $a\{{x\}}b$ refers to $a \underbrace{\uparrow\uparrow...\uparrow}_{x\space arrows} b$
+- Example: $4\{{5\}}3$ represents $4 ↑↑↑↑↑ 3$ (4 heptated to 3)
+- Rules: $a\{{1\}}n = a^n$ and $a\{{x\}}1 = a$
+
+### [Bower's Exploding Array Function](https://googology.fandom.com/wiki/Bowers%27_Exploding_Array_Function)
+- $\{{a, b, c, d\}} = a\{{c\}}^db$, where d is the number of sets of braces
+- Example: $\{{3, 3, 2, 1\}}$ represents $3\{{2\}}3 = 3^{27}$
+- Rules:
+  - $\{{a, b, 1, 1\}} = \{{a, b\}} = a\{{1\}}b = a ↑ b$
+  - $\{{a, 1, c, d\}} = a\{{c\}}^d1 = a$
+  - $\{{a, b, 1, d\}} = \{{a, a, \{{a, b - 1, 1, d\}}, d - 1\}}, b, d > 1$
+  - $\{{a, b, c, d\}} = \{{a, b, \{{a, b - 1, c, d\}}, d - 1\}}, b > 1$
+
+### [PsiCubed2's Letter Notation](https://googology.fandom.com/wiki/User_blog:PsiCubed2/Letter_Notation_Part_II)
+- $Ex = 10\{{1\}}x,\space Fx = 10\{{2\}}x,\space Gx = 10\{{3\}}x,\space Hx = 10\{{4\}}x$
+- Example: $E100$ represents $10^{100}$ (googol)
+- Diagonalization: $Jx = 10\{{x\}}10$
+- Extended: $Nx = \{{10, \lfloor x \rfloor +1, 2 \cdot 5^{\{x\}}, \lfloor x \rfloor\}}$
+
+### [Fast-Growing Hierarchy](https://en.wikipedia.org/wiki/Fast-growing_hierarchy)
+- $f_{\omega^2+1}$ approximately corresponds to megotional growth rate
+    - [Megotion](https://googology.wikia.org/wiki/Megotion) refers to $\{{a, b, 1, 1, 2\}}$
+- This library supports up to $\{{10, 9e15, 1, 1, 2\}}$
+
+## Acknowledgements
+
+This project is a fork of [MegotaNum.js](https://github.com/sonic3XE/MegotaNum), originally created by [sonic3XE](https://github.com/sonic3XE).
+
+Code snippets and templates were borrowed from [Decimal.js](https://github.com/MikeMcl/decimal.js/) by [Naruyoko](https://github.com/Naruyoko).
+
+## License
+
+MIT

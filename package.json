@@ -1,26 +1,45 @@
 {
-  "name": "megota_num.js",
-  "version": "0.0.0",
-  "description": "A JavaScript library that handles arithmetic for numbers as large as {10,9e15,1,1,2}. Inspired by Naruyoko",
-  "main": "MegotaNum.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/sonic3XE/MegotaNum.js.git"
-  },
-  "keywords": [
-    "bignum",
-    "bignumber",
-    "bigdecimal",
-    "number",
-    "decimal"
-  ],
-  "author": "sonic3XE",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/sonic3XE/MegotaNum.js/issues"
-  },
-  "homepage": "https://github.com/sonic3XE/MegotaNum.js"
+    "name": "megotanumber",
+    "version": "0.0.0",
+    "description": "A JavaScript library that handles arithmetic for numbers as large as {10,9e15,1,1,2}.",
+    "main": "out/MegotaNumber.js",
+    "types": "out/MegotaNumber.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "build:wasm": "asc src/MegotaNumber.ts",
+        "weblink": "cd web && npm run weblink && cd ..",
+        "prepare": "npm run build",
+        "test": "jest --coverage"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Unreal-Works/MegotaNum.git"
+    },
+    "keywords": [
+        "bignum",
+        "bignumber",
+        "bigdecimal",
+        "number",
+        "decimal"
+    ],
+    "author": "Unreal-Works <unrealworks@mail.com> (https://github.com/Unreal-Works)",
+    "contributors": [
+        "sonic3XE"
+    ],
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/Unreal-Works/MegotaNum/issues"
+    },
+    "homepage": "https://github.com/Unreal-Works/MegotaNum",
+    "devDependencies": {
+        "assemblyscript": "^0.27.36",
+        "eslint": "^9.27.0",
+        "eslint-config-prettier": "^10.1.5",
+        "jest": "^29.7.0",
+        "jest-extended": "^5.0.3",
+        "prettier": "3.5.3",
+        "ts-jest": "^29.3.4",
+        "typescript": "^5.8.3",
+        "typescript-eslint": "^8.33.0"
+    }
 }
