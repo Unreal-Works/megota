@@ -440,7 +440,7 @@ export default class MegotaNumber {
         parsed.layer = input.layer !== undefined ? input.layer : 0;
         return parsed;
     }
-    
+
     /**
      * Calculates the base-10 logarithm of a positive BigInt number.
      * 
@@ -453,7 +453,7 @@ export default class MegotaNumber {
     private static log10PosBigInt(inputBigInt: bigint): number {
         // Start with a reasonable bit size for the exponent
         let exponentBits = BigInt(64);
-        
+
         // First, find an upper bound on the number of bits needed
         // Double the exponent until it's large enough
         while (inputBigInt >= BigInt(1) << exponentBits)
@@ -473,13 +473,13 @@ export default class MegotaNumber {
         // Extract the most significant bits for precision
         const bitsToRemove = exponentBits - BigInt(54); // 54 bits gives double precision
         const significantBits = inputBigInt >> bitsToRemove;
-        
+
         // Compute log10 using the significant bits and bit count
         // log10(x) = log10(significantBits) + log10(2^bitsToRemove)
         //          = log10(significantBits) + bitsToRemove * log10(2)
         return Math.log10(Number(significantBits)) + Math.LOG10E / Math.LOG2E * Number(bitsToRemove);
     }
-    
+
     /**
      * Creates a MegotaNumber from a BigInt.
      * 
@@ -492,7 +492,7 @@ export default class MegotaNumber {
         const absoluteValue = inputValue < BigInt(0) ? -inputValue : inputValue;
         // Set sign based on input value
         resultNumber.sign = inputValue < BigInt(0) ? -1 : 1;
-        
+
         // Handle small numbers directly
         if (absoluteValue <= BigInt(PrimitiveConstants.MAX_SAFE_INTEGER)) {
             // For small numbers, just store the value directly
@@ -506,7 +506,7 @@ export default class MegotaNumber {
         }
         return resultNumber.normalize();
     }
-    
+
     /**
      * Creates a MegotaNumber from an array of numbers in OmegaNum.js format.
      * 
@@ -521,14 +521,14 @@ export default class MegotaNumber {
      */
     public static fromOmegaNum(omegaArray: Array<number>): MegotaNumber {
         const resultNumber = new MegotaNumber();
-        
+
         // In OmegaNum format, each position represents a different operation level
         for (let operationLevel = 0; operationLevel < omegaArray.length; operationLevel++) {
             // Create a triplet [layer, operator, value] for each entry
             // OmegaNum uses fixed layer 0 with varying operation levels
             resultNumber.array.push([0, operationLevel, omegaArray[operationLevel]]);
         }
-        
+
         return resultNumber.normalize();
     }
 
@@ -545,7 +545,7 @@ export default class MegotaNumber {
      */
     public static fromExpantaNum(expantaArray: Array<Array<number>>): MegotaNumber {
         const resultNumber = new MegotaNumber();
-        
+
         // Process each entry in the ExpantaNum array
         for (let index = 0; index < expantaArray.length; index++) {
             // ExpantaNum uses format [operation, value]
@@ -554,10 +554,10 @@ export default class MegotaNumber {
             const value = expantaArray[index][1];
             resultNumber.array.push([0, operation, value]);
         }
-        
+
         return resultNumber.normalize();
     }
-    
+
     /**
      * Creates a deep clone of the current MegotaNumber instance.
      * 
@@ -570,7 +570,7 @@ export default class MegotaNumber {
     public clone(): MegotaNumber {
         // Create a new empty MegotaNumber instance
         const clonedNumber = new MegotaNumber();
-        
+
         // Create a deep copy of the array representation
         const clonedArray = [];
         for (let index = 0; index < this.array.length; ++index) {
@@ -578,12 +578,12 @@ export default class MegotaNumber {
             // This ensures we have a true deep copy of each [layer, operation, value] triplet
             clonedArray.push([...this.array[index]]);
         }
-        
+
         // Copy all properties to the new instance
         clonedNumber.array = clonedArray;
         clonedNumber.sign = this.sign;
         clonedNumber.layer = this.layer;
-        
+
         return clonedNumber;
     }
 
@@ -847,89 +847,131 @@ export default class MegotaNumber {
 
         let a: number | undefined;
         let b: number | undefined;
-        if (this.layer != other.layer) {
-            let x: MegotaNumber, y: MegotaNumber;
-            if (this.layer > other.layer) {
-                x = this;
-                y = other;
-            }
-            else {
-                x = other;
-                y = this;
-            }
 
-            if (!(x.array.length == 2 && x.array[0][0] === 0 && x.array[0][1] === 0 && x.array[1][0] === 0 && x.array[1][1] == 1 && x.array[1][2] == 1))
+        if (this.layer != other.layer) {
+            const higherLayerNumber = this.layer > other.layer ? this : other;
+            const lowerLayerNumber = this.layer > other.layer ? other : this;
+
+            if (!(higherLayerNumber.array.length == 2 &&
+                higherLayerNumber.array[0][0] === 0 &&
+                higherLayerNumber.array[0][1] === 0 &&
+                higherLayerNumber.array[1][0] === 0 &&
+                higherLayerNumber.array[1][1] == 1 &&
+                higherLayerNumber.array[1][2] == 1))
                 return false;
 
-            a = x.array[0][2];
-            if (y.array[y.array.length - 1][1] >= 10) {
-                b = Math.log10(y.array[y.array.length - 1][1] + 1);
+            a = higherLayerNumber.array[0][2];
+
+            const lastElem = lowerLayerNumber.array[lowerLayerNumber.array.length - 1];
+            if (lastElem[1] >= 10) {
+                b = Math.log10(lastElem[1] + 1);
+            } else {
+                b = Math.log10(lastElem[1]);
             }
-            else {
-                b = Math.log10(y.array[y.array.length - 1][1]);
-            }
-        }
-        else {
-            if (Math.abs(this.array[this.array.length - 1][1] - other.array[other.array.length - 1][1]) > 1) return false;
-            for (let i = 1; Math.max(this.array.length, other.array.length) - i >= 0; ++i) {
-                let c = this.array[this.array.length - i][1];
-                const d = other.array[other.array.length - i][1];
-                let x: MegotaNumber, y: MegotaNumber, e: number, f: number;
-                if (c != d) {
-                    if (c > d) {
-                        x = this;
-                        y = other;
+        } else {
+            const maxLength = Math.max(this.array.length, other.array.length);
+
+            if (Math.abs(this.array[this.array.length - 1][1] - other.array[other.array.length - 1][1]) > 1)
+                return false;
+
+            for (let i = 1; maxLength - i >= 0; ++i) {
+                const thisIdx = this.array.length - i;
+                const otherIdx = other.array.length - i;
+
+                // Skip if index is out of bounds for either array
+                if (thisIdx < 0 || otherIdx < 0) continue;
+
+                const thisValue = this.array[thisIdx][1];
+                const otherValue = other.array[otherIdx][1];
+
+                if (thisValue != otherValue) {
+                    // Different values case
+                    const largerValueNum = thisValue > otherValue ? this : other;
+                    const smallerValueNum = thisValue > otherValue ? other : this;
+                    const largerValue = thisValue > otherValue ? thisValue : otherValue;
+                    const largerIdx = largerValueNum.array.length - i;
+
+                    const e = largerValueNum.array[largerIdx][2];
+                    const f = 0;
+
+                    if (Math.abs(e - f) > 1) {
+                        return false;
                     }
-                    else {
-                        x = other;
-                        y = this;
-                        c = d;
+
+                    if (!(largerIdx < 2 ||
+                        (largerIdx == 2 &&
+                            largerValueNum.array[0][0] === 0 &&
+                            largerValueNum.array[0][1] === 0 &&
+                            largerValueNum.array[1][0] === 0 &&
+                            largerValueNum.array[1][1] == 1 &&
+                            largerValueNum.array[1][2] == 1))) {
+                        return false;
                     }
-                    e = x.array[x.array.length - i][2];
-                    f = 0;
-                }
-                else {
-                    x = this;
-                    y = other;
-                    e = x.array[x.array.length - i][2];
-                    f = y.array[y.array.length - i][2];
-                    if (x.array.length - i == 0) {
+
+                    a = largerValueNum.array[0][2];
+
+                    if (largerValue == 1) {
+                        b = Math.log10(smallerValueNum.operator([0, 0]));
+                    } else if (largerValue == 2 && smallerValueNum.operator([0, 0]) >= 1e10) {
+                        b = Math.log10(smallerValueNum.operator([0, 1]) + 2);
+                    } else if (smallerValueNum.operator([0, largerValue - 2]) >= 10) {
+                        b = Math.log10(smallerValueNum.operator([0, largerValue - 1]) + 1);
+                    } else {
+                        b = Math.log10(smallerValueNum.operator([0, largerValue - 1]));
+                    }
+                    break;
+                } else {
+                    // Same values case
+                    const e = this.array[thisIdx][2];
+                    const f = other.array[otherIdx][2];
+
+                    if (thisIdx == 0) {
                         a = e;
                         b = f;
                         break;
                     }
-                }
 
-                if (Math.abs(e - f) > 1) {
-                    return false;
-                }
-
-                if (e !== f) {
-                    if (!(x.array.length - i < 2 || x.array.length - i == 2 && x.array[0][0] === 0 && x.array[0][1] === 0 && x.array[1][0] === 0 && x.array[1][1] == 1 && x.array[1][2] == 1)) {
+                    if (Math.abs(e - f) > 1) {
                         return false;
                     }
 
-                    a = x.array[0][2];
+                    if (e !== f) {
+                        const higherValueNum = e > f ? this : other;
+                        const lowerValueNum = e > f ? other : this;
+                        const higherIdx = higherValueNum.array.length - i;
+                        const c = thisValue; // or otherValue, they're the same
 
-                    if (c == 1) {
-                        b = Math.log10(y.operator([0, 0]));
+                        if (!(higherIdx < 2 ||
+                            (higherIdx == 2 &&
+                                higherValueNum.array[0][0] === 0 &&
+                                higherValueNum.array[0][1] === 0 &&
+                                higherValueNum.array[1][0] === 0 &&
+                                higherValueNum.array[1][1] == 1 &&
+                                higherValueNum.array[1][2] == 1))) {
+                            return false;
+                        }
+
+                        a = higherValueNum.array[0][2];
+
+                        if (c == 1) {
+                            b = Math.log10(lowerValueNum.operator([0, 0]));
+                        } else if (c == 2 && lowerValueNum.operator([0, 0]) >= 1e10) {
+                            b = Math.log10(lowerValueNum.operator([0, 1]) + 2);
+                        } else if (lowerValueNum.operator([0, c - 2]) >= 10) {
+                            b = Math.log10(lowerValueNum.operator([0, c - 1]) + 1);
+                        } else {
+                            b = Math.log10(lowerValueNum.operator([0, c - 1]));
+                        }
+                        break;
                     }
-                    else if (c == 2 && y.operator([0, 0]) >= 1e10) {
-                        b = Math.log10(y.operator([0, 1]) + 2);
-                    }
-                    else if (y.operator([0, c - 2]) >= 10) {
-                        b = Math.log10(y.operator([0, c - 1]) + 1);
-                    }
-                    else {
-                        b = Math.log10(y.operator([0, c - 1]));
-                    }
-                    break;
                 }
             }
         }
+
         if (a === undefined || b === undefined) {
             return false;
         }
+
         return Math.abs(a - b) <= tolerance * Math.max(Math.abs(a), Math.abs(b));
     }
 
@@ -1370,8 +1412,8 @@ export default class MegotaNumber {
         // - Either number is NaN
         // - Both numbers are infinite (∞/∞ is undefined)
         // - Both numbers are zero (0/0 is undefined)
-        if (dividend.isNaN() || divisor.isNaN() || 
-            (dividend.isInfinite() && divisor.isInfinite()) || 
+        if (dividend.isNaN() || divisor.isNaN() ||
+            (dividend.isInfinite() && divisor.isInfinite()) ||
             (dividend.equals(MegotaNumber.ZERO) && divisor.equals(MegotaNumber.ZERO)))
             return MegotaNumber.NaN.clone();
 
@@ -1409,11 +1451,11 @@ export default class MegotaNumber {
         // For larger results, use logarithmic division:
         // a/b = 10^(log10(a) - log10(b))
         const logarithmicResult = MegotaNumber.TEN.pow(dividend.log10().sub(divisor.log10()));
-        
+
         // Handle potential floating point issues by rounding to nearest integer if very close
         const flooredResult = logarithmicResult.floor();
         const isVeryCloseToInteger = logarithmicResult.sub(flooredResult).lessThan(MegotaNumber.fromNumber(1e-9));
-        
+
         return isVeryCloseToInteger ? flooredResult : logarithmicResult;
     }
 
@@ -1866,6 +1908,7 @@ export default class MegotaNumber {
             j.normalize();
             return j;
         }
+
 
         const y = other.toNumber();
         let f = Math.floor(y);
@@ -2429,45 +2472,45 @@ export default class MegotaNumber {
     public getOperatorIndex(searchOperator: [number, number]): number {
         const operatorArray = this.array;
         let minIndex = 0, maxIndex = operatorArray.length - 1;
-        
+
         while (minIndex != maxIndex) {
             // Check if the operator is at the min or max positions first for quick returns
-            
+
             // Check if operator at minIndex matches the search operator
             // Extract the first two elements (layer, exponent) and compare with searchOperator
             if (operatorArray[minIndex].slice(0, 2).map((element, index) => searchOperator[index] == element).reduce((acc, curr) => (acc && curr)))
                 return minIndex;
-                
+
             // Check if operator at maxIndex matches the search operator
             if (operatorArray[maxIndex].slice(0, 2).map((element, index) => searchOperator[index] == element).reduce((acc, curr) => (acc && curr)))
                 return maxIndex;
-                
+
             // Binary search: calculate midpoint
             const midIndex = Math.floor((minIndex + maxIndex) / 2);
-            
+
             // If we can't narrow down further or found exact match at mid
-            if (minIndex == midIndex || 
+            if (minIndex == midIndex ||
                 operatorArray[midIndex].slice(0, 2).map((element, index) => searchOperator[index] == element).reduce((acc, curr) => (acc && curr))) {
                 minIndex = midIndex;
                 break;
             }
-            
+
             // Adjust search bounds based on comparison
             // Compare layer first, then exponent if layers are equal
-            if (operatorArray[midIndex][0] < searchOperator[0] || 
+            if (operatorArray[midIndex][0] < searchOperator[0] ||
                 (searchOperator[0] == operatorArray[midIndex][0] && operatorArray[midIndex][1] < searchOperator[1])) {
                 minIndex = midIndex; // Search in upper half
             }
-            
-            if (operatorArray[midIndex][0] > searchOperator[0] || 
+
+            if (operatorArray[midIndex][0] > searchOperator[0] ||
                 (searchOperator[0] == operatorArray[midIndex][0] && operatorArray[midIndex][1] > searchOperator[1])) {
                 maxIndex = midIndex; // Search in lower half
             }
         }
-        
+
         // Return exact index if found, otherwise return a decimal value indicating insertion position
-        return (operatorArray[minIndex][1] == searchOperator[1] && operatorArray[minIndex][0] == searchOperator[0]) 
-            ? minIndex 
+        return (operatorArray[minIndex][1] == searchOperator[1] && operatorArray[minIndex][0] == searchOperator[0])
+            ? minIndex
             : minIndex + 0.5;
     }    /**
      * Gets or sets the operator value for a given index.

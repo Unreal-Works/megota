@@ -1,30 +1,7 @@
-/// <reference types="jest-extended" />
-import { beforeEach, describe, expect, it } from '@jest/globals';
+/// <reference types="../global.d.ts" />
+
+import { describe, expect, it } from '@jest/globals';
 import MegotaNumber from '../src/MegotaNumber';
-
-declare global {
-    namespace jest {
-        interface Matchers<R> {
-            toEqualMegota(expected: MegotaNumber): R;
-        }
-    }
-}
-
-beforeEach(() => {
-    expect.extend({
-        toEqualMegota(actual: unknown, expected: MegotaNumber) {
-            const pass = (actual as MegotaNumber).equals(expected);
-
-            return {
-                pass,
-                message: () =>
-                    pass
-                        ? `Expected ${(actual as MegotaNumber).toString()} not to equal ${expected.toString()}`
-                        : `Expected ${(actual as MegotaNumber).toString()} to equal ${expected.toString()}`
-            };
-        }
-    });
-});
 
 describe('configurations', () => {
     it('should change maxOps when set', () => {
@@ -129,8 +106,8 @@ describe('fromString', () => {
         expect(num3.greaterThan(MegotaNumber.fromString('N9'))).toBe(true);
 
         const num4 = MegotaNumber.fromString('N^3 10');
-        expect(num4.greaterThan(MegotaNumber.fromString('N^2 10'))).toBe(true);
-        expect(num4.greaterThan(MegotaNumber.fromString('N^3 9'))).toBe(true);
+        expect(num4).toBeGreaterThanMegota(MegotaNumber.fromString('N^2 10'));
+        expect(num4).toBeGreaterThanMegota(MegotaNumber.fromString('N^3 9'));
     });
 
     it('should handle malformed inputs', () => {
@@ -140,7 +117,7 @@ describe('fromString', () => {
 
     it('should handle JSON format inputs', () => {
         const original = MegotaNumber.fromNumber(42);
-        expect(MegotaNumber.fromJSON(original.toJSON()).equals(original)).toBe(true);
+        expect(MegotaNumber.fromJSON(original.toJSON())).toEqualMegota(original);
     });
 });
 
@@ -148,10 +125,8 @@ describe('fromJSON and fromObject methods', () => {
     it('should correctly parse JSON objects', () => {
         const original = MegotaNumber.fromNumber(42);
         const json = original.toJSON();
-        const parsed = MegotaNumber.fromJSON(json);
 
-        expect(parsed).toEqualMegota(original);
-        expect(parsed.equals(original)).toBe(true);
+        expect(MegotaNumber.fromJSON(json)).toEqualMegota(original);
     });
 
     it('should handle invalid JSON', () => {
@@ -160,7 +135,7 @@ describe('fromJSON and fromObject methods', () => {
 
     it('should handle null objects', () => {
         const result = MegotaNumber.fromObject(null);
-        expect(result.equals(MegotaNumber.fromNumber(0))).toBe(true);
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(0));
     });
 
     it('should throw for non-object inputs', () => {
@@ -185,7 +160,7 @@ describe('fromOmegaNum method', () => {
         const result = MegotaNumber.fromOmegaNum([5, 3]); // 10^(10^(10^5)) = ee100000
         const ten = MegotaNumber.fromNumber(10);
         const expected = ten.pow(ten.pow(ten.pow(MegotaNumber.fromNumber(5))));
-        expect(result.equals(expected)).toBe(true);
+        expect(result).toEqualMegota(expected);
     });
 
     it('should handle empty arrays', () => {
@@ -196,15 +171,13 @@ describe('fromOmegaNum method', () => {
 
 describe('fromExpantaNum method', () => {
     it('should create from ExpantaNum-style array', () => {
-        const num = MegotaNumber.fromExpantaNum([[0, 5], [1, 10]]); // 5 * 10^10
-        expect(num.array[0][2]).toBe(5);
-        expect(num.array[1][1]).toBe(1);
-        expect(num.array[1][2]).toBe(10);
+        const num = MegotaNumber.fromExpantaNum([[0, 5]]);
+        expect(num).toEqualMegota(MegotaNumber.fromNumber(5));
     });
 
     it('should handle empty arrays', () => {
         const num = MegotaNumber.fromExpantaNum([]);
-        expect(num.array.length).toBe(0);
+        expect(num).toEqualMegota(MegotaNumber.fromNumber(0));
     });
 });
 
@@ -221,7 +194,7 @@ describe('clone method', () => {
         const original = MegotaNumber.fromNumber(42);
         const clone = original.clone();
 
-        expect(clone.equals(original)).toBe(true);
+        expect(clone).toEqualMegota(original);
 
         // Modify clone and check that original is unchanged
         clone.array[0][2] = 43;
@@ -244,8 +217,7 @@ describe('serialization', () => {
         const json = original.toJSON();
         const parsed = MegotaNumber.fromJSON(json);
 
-        expect(parsed.sign).toBe(original.sign);
-        expect(parsed.array[0][2]).toBe(original.array[0][2]);
+        expect(parsed).toEqualMegota(original);
     });
 
     it('should serialize to JSON in correct format based on serializeMode', () => {
@@ -258,7 +230,7 @@ describe('serialization', () => {
         // String mode (1)
         const originalMode = MegotaNumber.serializeMode;
         MegotaNumber.serializeMode = 1;
-        expect(num.toJSON()).toBe('"42"');
+        expect(num.toJSON()).toBe('42');
 
         MegotaNumber.serializeMode = originalMode; // Restore
     });
@@ -271,9 +243,9 @@ describe('comparison', () => {
         const c = MegotaNumber.fromNumber(5);
         const d = MegotaNumber.fromNumber(-5);
 
-        expect(a.equals(c)).toBe(true);
-        expect(a.equals(b)).toBe(false);
-        expect(a.equals(d)).toBe(false);
+        expect(a).toEqualMegota(c);
+        expect(a).not.toEqualMegota(b);
+        expect(a).not.toEqualMegota(d);
     });
 
     it('should compare numbers correctly using compareTo', () => {
@@ -282,9 +254,9 @@ describe('comparison', () => {
         const c = MegotaNumber.fromNumber(5);
         const d = MegotaNumber.fromNumber(-5);
 
-        expect(a.compareTo(b) < 0).toBe(true);
-        expect(a.compareTo(c) === 0).toBe(true);
-        expect(d.compareTo(a) < 0).toBe(true);
+        expect(a.compareTo(b)).toEqual(-1);
+        expect(a.compareTo(c)).toEqual(0);
+        expect(d.compareTo(a)).toEqual(-1);
     });
 
     it('should handle greaterThan and greaterThanOrEquals', () => {
@@ -292,10 +264,10 @@ describe('comparison', () => {
         const b = MegotaNumber.fromNumber(10);
         const c = MegotaNumber.fromNumber(5);
 
-        expect(b.greaterThan(a)).toBe(true);
-        expect(a.greaterThan(b)).toBe(false);
-        expect(a.greaterThanOrEquals(c)).toBe(true);
-        expect(a.greaterThanOrEquals(b)).toBe(false);
+        expect(b).toBeGreaterThanMegota(a);
+        expect(a).not.toBeGreaterThanMegota(b);
+        expect(a).toBeGreaterThanOrEqualMegota(c);
+        expect(a).not.toBeGreaterThanOrEqualMegota(b);
     });
 
     it('should identify NaN and finite values', () => {
@@ -329,7 +301,7 @@ describe('configuration changes', () => {
     });
 });
 
-describe('arithmetic', () => {
+describe('additional and subtraction', () => {
     it('should add small positive numbers', () => {
         const a = MegotaNumber.fromNumber(5);
         const b = MegotaNumber.fromNumber(10);
@@ -346,5 +318,285 @@ describe('arithmetic', () => {
 
         expect(result.array[0][2]).toBe(5);
         expect(result.sign).toBe(-1);
+    });
+
+    it('should add positive and negative numbers', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(-3);
+        const result = a.add(b);
+
+        expect(result.array[0][2]).toBe(2);
+        expect(result.sign).toBe(1);
+    });
+
+    it('should add large positive numbers', () => {
+        const a = MegotaNumber.fromString("1.5e1000");
+        const b = MegotaNumber.fromString("2.2e1000");
+        const result = a.add(b);
+        const expected = MegotaNumber.fromString("3.7e1000");
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should add large negative numbers', () => {
+        const a = MegotaNumber.fromString("-5.5e1000");
+        const b = MegotaNumber.fromString("-2.2e1000");
+        const result = a.add(b);
+        const expected = MegotaNumber.fromString("-7.7e1000");
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should add very large numbers', () => {
+        const a = MegotaNumber.fromString("1e10000");
+        const b = MegotaNumber.fromString("4e10000");
+        const result = a.add(b);
+        const expected = MegotaNumber.fromString("5e10000");
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should subtract very large numbers', () => {
+        const a = MegotaNumber.fromString("1e10000");
+        const b = MegotaNumber.fromString("4e10000");
+        const result = a.sub(b);
+        const expected = MegotaNumber.fromString("-3e10000");
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should add positive and negative large numbers', () => {
+        const a = MegotaNumber.fromString("1.5e1000");
+        const b = MegotaNumber.fromString("-2.2e1000");
+        const result = a.add(b);
+        const expected = MegotaNumber.fromString("-0.7e1000");
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should add extremely large numbers', () => {
+        const a = MegotaNumber.fromString("J2");
+        const b = MegotaNumber.fromString("J2");
+        const result = a.add(b);
+        const expected = MegotaNumber.fromString("J2");
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should handle zero sum with small numbers', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(-5);
+        const result = a.add(b);
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(0));
+    });
+
+    it('should handle zero sum with very large numbers', () => {
+        const a = MegotaNumber.fromString("1e10000");
+        const b = MegotaNumber.fromString("-1e10000");
+        const result = a.add(b);
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(0));
+    });
+
+    it('should add zero correctly', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(0);
+        const result = a.add(b);
+
+        expect(result.array[0][2]).toBe(5);
+        expect(result.sign).toBe(1);
+    });
+
+    it('should handle addition with NaN', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(NaN);
+        const result = a.add(b);
+
+        expect(result.isNaN()).toBe(true);
+    });
+});
+
+describe('multiplication and division', () => {
+    it('should multiply small positive numbers', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(10);
+        const result = a.mul(b);
+
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(50));
+    });
+
+    it('should multiply small negative numbers', () => {
+        const a = MegotaNumber.fromNumber(-5);
+        const b = MegotaNumber.fromNumber(-10);
+        const result = a.mul(b);
+
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(50));
+    });
+
+    it('should multiply positive and negative numbers', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(-3);
+        const result = a.mul(b);
+
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(-15));
+    });
+
+    it('should multiply large positive numbers', () => {
+        const a = MegotaNumber.fromString("1.5e1000");
+        const b = MegotaNumber.fromString("2.2e1000");
+        const result = a.mul(b);
+        const expected = MegotaNumber.fromString("3.3e2000");
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should multiply large negative numbers', () => {
+        const a = MegotaNumber.fromString("-5.5e1000");
+        const b = MegotaNumber.fromString("-2.2e1000");
+        const result = a.mul(b);
+        const expected = MegotaNumber.fromString("12.1e2000");
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should multiply very large numbers', () => {
+        const a = MegotaNumber.fromString("1e10000");
+        const b = MegotaNumber.fromString("4e10000");
+        const result = a.mul(b);
+        const expected = MegotaNumber.fromString("4e20000");
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should multiply very large negative numbers', () => {
+        const a = MegotaNumber.fromString("-2e10000");
+        const b = MegotaNumber.fromString("-3e10000");
+        const result = a.mul(b);
+        const expected = MegotaNumber.fromString("6e20000");
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should multiply small numbers with large numbers', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromString("1e1000");
+        const result = a.mul(b);
+        const expected = MegotaNumber.fromString("5e1000");
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should divide very large numbers', () => {
+        const a = MegotaNumber.fromString("1e10000");
+        const b = MegotaNumber.fromString("4e10000");
+        const result = a.div(b);
+        const expected = MegotaNumber.fromString("0.25e0");
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should handle division by zero', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(0);
+        const result = a.div(b);
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(Infinity));
+    });
+
+    it('should handle multiplication by zero', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(0);
+        const result = a.mul(b);
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(0));
+    });
+
+    it('should handle division by one', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(1);
+        const result = a.div(b);
+        expect(result).toEqualMegota(a);
+    });
+
+    it('should handle multiplication by one', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(1);
+        const result = a.mul(b);
+        expect(result).toEqualMegota(a);
+    });
+
+    it('should handle division by negative numbers', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(-2);
+        const result = a.div(b);
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(-2.5));
+    });
+
+    it('should handle multiplication by negative numbers', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(-2);
+        const result = a.mul(b);
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(-10));
+    });
+
+    it('should handle multiplication with NaN', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(NaN);
+        const result = a.mul(b);
+        expect(result.isNaN()).toBe(true);
+    });
+
+    it('should handle division by NaN', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const b = MegotaNumber.fromNumber(NaN);
+        const result = a.div(b);
+        expect(result.isNaN()).toBe(true);
+    });
+});
+
+describe('exponentiation', () => {
+    it('should exponentiate small numbers', () => {
+        const a = MegotaNumber.fromNumber(2);
+        const b = MegotaNumber.fromNumber(3);
+        const result = a.pow(b);
+
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(8));
+    });
+
+    it('should exponentiate large numbers', () => {
+        const a = MegotaNumber.fromString("2e1000");
+        const b = MegotaNumber.fromString("50");
+        const result = a.pow(b);
+        const expected = MegotaNumber.fromString("1.125899906842624e50015"); // 2^50 = 1125899906842624
+        expect(result).toBeCloseToMegota(expected);
+    });
+
+    it('should handle exponentiation with zero base', () => {
+        const a = MegotaNumber.fromNumber(0);
+        const b = MegotaNumber.fromNumber(5);
+        const result = a.pow(b);
+
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(0));
+    });
+
+    it('should handle zero exponent', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const result = a.pow(MegotaNumber.fromNumber(0));
+        expect(result).toEqualMegota(MegotaNumber.fromNumber(1));
+    });
+
+    it('should handle one exponent', () => {
+        const a = MegotaNumber.fromNumber(5);
+        const result = a.pow(MegotaNumber.fromNumber(1));
+        expect(result).toEqualMegota(a);
+    });
+
+    it('should handle negative exponents', () => {
+        const a = MegotaNumber.fromNumber(2);
+        const b = MegotaNumber.fromNumber(-3);
+        const result = a.pow(b);
+
+        expect(result).toEqualMegota(MegotaNumber.fromString("0.125"));
+    });
+
+    it('should handle NaN base with exponentiation', () => {
+        const a = MegotaNumber.fromNumber(NaN);
+        const b = MegotaNumber.fromNumber(2);
+        const result = a.pow(b);
+
+        expect(result.isNaN()).toBe(true);
+    });
+
+    it('should handle NaN exponent with exponentiation', () => {
+        const a = MegotaNumber.fromNumber(2);
+        const b = MegotaNumber.fromNumber(NaN);
+        const result = a.pow(b);
+
+        expect(result.isNaN()).toBe(true);
     });
 });

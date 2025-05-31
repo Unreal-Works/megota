@@ -1,0 +1,40 @@
+{
+    "plugin": [
+        "typedoc-material-theme",
+        "typedoc-plugin-missing-exports",
+        "typedoc-plugin-rename-defaults",
+        "typedoc-plugin-katex"
+    ],
+    "themeColor": "#48c0f0",
+    "projectDocuments": [
+        "information/*.md"
+    ],
+    "placeInternalsInOwningModule": true,
+    "highlightLanguages": [
+        "typescript",
+        "javascript",
+        "shellscript"
+    ],
+    "favicon": "assets/favicon.png",
+    "entryPointStrategy": "expand",
+    "entryPoints": [
+        "src/MegotaNumber.ts"
+    ],
+    "katex": {
+        "version": "0.11.1",
+        "options": {
+            "delimiters": [
+                {
+                    "left": "$$",
+                    "right": "$$",
+                    "display": true
+                },
+                {
+                    "left": "$",
+                    "right": "$",
+                    "display": false
+                }
+            ]
+        }
+    }
+}

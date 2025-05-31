@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import { f_lambertw, LambertWError, OMEGA } from '../src/Lambertw';
 
 describe('Lambert W Function', () => {

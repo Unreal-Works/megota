@@ -1,6 +1,6 @@
-const MegotaNumberModule = require('./out/MegotaNumber.js');
-const OmegaNum = require('./om.js');
-const MegotaNumber = MegotaNumberModule.default;
+const MegotaNumModule = require('./out/MegotaNumber.js');
+const MegotaNumber = MegotaNumModule.default;
+const ExpantaNum = require('./reference.js');
+const original = require('./original.js');
 
-//console.log(MegotaNumber.fromOmegaNum([5, 3]).toString())
-console.log(MegotaNumber.fromOmegaNum([]))
+console.log(new ExpantaNum("2e1000").pow("3e1000").toString())

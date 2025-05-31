@@ -1,9 +1,15 @@
-# MegotaNumber
+<h1>
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="assets/favicon.png">
+        <img alt="MegotaNumber" width=130 src="assets/favicon.png">
+    </picture>
+</h1>
 
-![Version](https://img.shields.io/npm/v/megotanumber)
-![License](https://img.shields.io/npm/l/megotanumber)
+[![Build status](https://github.com/Unreal-Works/megota/actions/workflows/ci.yml/badge.svg?branch=master&event=push)](https://github.com/Unreal-Works/megota/actions/workflows/ci.yml)
+[![GitHub release](https://img.shields.io/github/release/Unreal-Works/megota.svg)](https://github.com/Unreal-Works/megota/releases/latest)
+[![CodeFactor](https://www.codefactor.io/repository/github/Unreal-Works/megota/badge)](https://www.codefactor.io/repository/github/Unreal-Works/megota)
 
-A powerful TypeScript/JavaScript library for handling arithmetic with extremely large numbers, supporting values up to $\{{10, 9e15, 1, 1, 2\}}$ and beyond standard number formats.
+A powerful TypeScript/JavaScript library for handling arithmetic with extremely large numbers, supporting values up to $\lbrace 10, 9e15, 1, 1, 2 \rbrace $ and beyond standard number formats.
 
 ## Features
 
@@ -50,29 +56,29 @@ MegotaNumber incorporates several different notation systems for representing ex
 - Example: $10 ↑↑ 3$ represents $10^{10^{10}}$
 
 ### [X-Sequence Hyper Notation](https://googology.fandom.com/wiki/X-Sequence_Hyper-Exponential_Notation)
-- $a\{{x\}}b$ refers to $a \underbrace{\uparrow\uparrow...\uparrow}_{x\space arrows} b$
-- Example: $4\{{5\}}3$ represents $4 ↑↑↑↑↑ 3$ (4 heptated to 3)
-- Rules: $a\{{1\}}n = a^n$ and $a\{{x\}}1 = a$
+- $a \lbrace x \rbrace b$ refers to $a \underbrace{\uparrow\uparrow...\uparrow}_{x\space arrows} b$
+- Example: $4 \lbrace 5 \rbrace 3$ represents $4 ↑↑↑↑↑ 3$ (4 heptated to 3)
+- Rules: $a \lbrace 1 \rbrace n = a^n$ and $a \lbrace x \rbrace 1 = a$
 
 ### [Bower's Exploding Array Function](https://googology.fandom.com/wiki/Bowers%27_Exploding_Array_Function)
-- $\{{a, b, c, d\}} = a\{{c\}}^db$, where d is the number of sets of braces
-- Example: $\{{3, 3, 2, 1\}}$ represents $3\{{2\}}3 = 3^{27}$
+- $\lbrace a, b, c, d \rbrace  = a \lbrace c \rbrace ^db$, where d is the number of sets of braces
+- Example: $\lbrace 3, 3, 2, 1 \rbrace $ represents $3 \lbrace 2 \rbrace 3 = 3^{27}$
 - Rules:
-  - $\{{a, b, 1, 1\}} = \{{a, b\}} = a\{{1\}}b = a ↑ b$
-  - $\{{a, 1, c, d\}} = a\{{c\}}^d1 = a$
-  - $\{{a, b, 1, d\}} = \{{a, a, \{{a, b - 1, 1, d\}}, d - 1\}}, b, d > 1$
-  - $\{{a, b, c, d\}} = \{{a, b, \{{a, b - 1, c, d\}}, d - 1\}}, b > 1$
+  - $\lbrace a, b, 1, 1 \rbrace  =  \lbrace a, b \rbrace  = a \lbrace 1 \rbrace b = a ↑ b$
+  - $\lbrace a, 1, c, d \rbrace  = a \lbrace c \rbrace ^d1 = a$
+  - $\lbrace a, b, 1, d \rbrace  =  \lbrace a, a,  \lbrace a, b - 1, 1, d \rbrace , d - 1 \rbrace , b, d > 1$
+  - $\lbrace a, b, c, d \rbrace  =  \lbrace a, b,  \lbrace a, b - 1, c, d \rbrace , d - 1 \rbrace , b > 1$
 
 ### [PsiCubed2's Letter Notation](https://googology.fandom.com/wiki/User_blog:PsiCubed2/Letter_Notation_Part_II)
-- $Ex = 10\{{1\}}x,\space Fx = 10\{{2\}}x,\space Gx = 10\{{3\}}x,\space Hx = 10\{{4\}}x$
+- $Ex = 10 \lbrace 1 \rbrace x,\space Fx = 10 \lbrace 2 \rbrace x,\space Gx = 10 \lbrace 3 \rbrace x,\space Hx = 10 \lbrace 4 \rbrace x$
 - Example: $E100$ represents $10^{100}$ (googol)
-- Diagonalization: $Jx = 10\{{x\}}10$
-- Extended: $Nx = \{{10, \lfloor x \rfloor +1, 2 \cdot 5^{\{x\}}, \lfloor x \rfloor\}}$
+- Diagonalization: $Jx = 10 \lbrace x \rbrace 10$
+- Extended: $Nx =  \lbrace 10, \lfloor x \rfloor +1, 2 \cdot 5^{ frac(x) }, \lfloor x \rfloor \rbrace $, where $frac(x)$ is the fractional part of $x$.
 
 ### [Fast-Growing Hierarchy](https://en.wikipedia.org/wiki/Fast-growing_hierarchy)
 - $f_{\omega^2+1}$ approximately corresponds to megotional growth rate
-    - [Megotion](https://googology.wikia.org/wiki/Megotion) refers to $\{{a, b, 1, 1, 2\}}$
-- This library supports up to $\{{10, 9e15, 1, 1, 2\}}$
+    - [Megotion](https://googology.wikia.org/wiki/Megotion) refers to $\lbrace a, b, 1, 1, 2 \rbrace $
+- This library supports up to $\lbrace 10, 9e15, 1, 1, 2 \rbrace $
 
 ## Acknowledgements
 
