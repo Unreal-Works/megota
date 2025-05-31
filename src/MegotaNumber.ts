@@ -650,7 +650,7 @@ export default class MegotaNumber {
      * @returns `true` if the number is positive infinity, otherwise `false`.
      */
     public isPositiveInfinity(): boolean {
-        return this.array[0][2] === Infinity;
+        return this.isInfinite() && this.sign === 1;
     }
 
     /**
@@ -661,7 +661,7 @@ export default class MegotaNumber {
      * @returns `true` if the number is negative infinity, otherwise `false`.
      */
     public isNegativeInfinity(): boolean {
-        return this.array[0][2] === -Infinity;
+        return this.isInfinite() && this.sign === -1;
     }
 
     /**
@@ -672,7 +672,7 @@ export default class MegotaNumber {
      * @returns `true` if the number is infinite, otherwise `false`.
      */
     public isInfinite(): boolean {
-        return this.isPositiveInfinity() || this.isNegativeInfinity();
+        return this.array[0][2] === Infinity;
     }
 
     /**
@@ -809,20 +809,6 @@ export default class MegotaNumber {
      */
     public lessThanOrEquals(other: MegotaNumber): boolean {
         return this.compareTo(other) <= 0;
-    }
-
-    /**
-     * Checks if this MegotaNumber is not equal to another MegotaNumber.
-     * 
-     * Equivalent to `this.compareTo(other) !== 0`.
-     * 
-     * Note that notEquals is not the same as `!this.equals(other)`, as notEquals will return `false` for NaN comparisons.
-     * 
-     * @param other The other MegotaNumber to compare against.
-     * @returns `true` if this number is not equal to the other, otherwise `false`.
-     */
-    public notEquals(other: MegotaNumber): boolean {
-        return this.compareTo(other) !== 0;
     }
 
     /**
@@ -1469,8 +1455,10 @@ export default class MegotaNumber {
     public reciprocal(): MegotaNumber {
         if (this.isNaN() || this.equals(MegotaNumber.ZERO))
             return MegotaNumber.NaN.clone();
+
         if (this.abs().greaterThan(MegotaNumber.RECIP_MAX))
             return MegotaNumber.ZERO.clone();
+        
         return MegotaNumber.fromNumber(1 / this.toNumber());
     }
 
@@ -1481,6 +1469,9 @@ export default class MegotaNumber {
      * @returns A new MegotaNumber that is the result of the modulo operation.
      */
     public modulo(other: MegotaNumber): MegotaNumber {
+        if (other.isNaN())
+            return MegotaNumber.NaN.clone();
+
         if (other.equals(MegotaNumber.ZERO))
             return MegotaNumber.ZERO.clone();
 
@@ -1838,7 +1829,7 @@ export default class MegotaNumber {
      */
     public tetrate(other: MegotaNumber, payload = MegotaNumber.ONE): MegotaNumber {
         const t = this.clone();
-        if (payload.notEquals(MegotaNumber.ONE)) {
+        if (!payload.equals(MegotaNumber.ONE)) {
             other = other.add(payload.slog(t));
         }
 
@@ -2377,7 +2368,7 @@ export default class MegotaNumber {
      */
     public static sumArithmeticSeries(terms: MegotaNumber, firstTerm: MegotaNumber, difference: MegotaNumber, offset: MegotaNumber): MegotaNumber {
         const actualStart = firstTerm.add(offset.mul(difference));
-        return terms.div(MegotaNumber.TWO).mul(actualStart.mul(MegotaNumber.TWO)).add(terms.sub(MegotaNumber.ONE).mul(difference));
+        return terms.div(MegotaNumber.TWO).mul(actualStart.mul(MegotaNumber.TWO).add(terms.sub(MegotaNumber.ONE).mul(difference)));
     }
 
     /**
@@ -2459,7 +2450,9 @@ export default class MegotaNumber {
         else s += "(10^)^" + op1 + " " + op0;
 
         return s;
-    }    /**
+    }
+    
+    /**
      * Gets the index of the operator in the array.
      * 
      * This method performs a binary search to find the index of the operator in the sorted array.
@@ -2512,7 +2505,9 @@ export default class MegotaNumber {
         return (operatorArray[minIndex][1] == searchOperator[1] && operatorArray[minIndex][0] == searchOperator[0])
             ? minIndex
             : minIndex + 0.5;
-    }    /**
+    }
+    
+    /**
      * Gets or sets the operator value for a given index.
      * 
      * This method has dual functionality:
