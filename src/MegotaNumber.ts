@@ -601,10 +601,11 @@ export default class MegotaNumber {
     /**
      * Returns the negated value of the number (the value with the opposite sign).
      * 
+     * @param inplace If `true`, modifies the current instance instead of creating a new one.
      * @returns The negated value of the number.
      */
-    public negate(): MegotaNumber {
-        const x = this.clone();
+    public negate(inplace?: boolean): MegotaNumber {
+        const x = inplace ? this : this.clone();
         x.sign *= -1;
         return x;
     }
@@ -687,68 +688,89 @@ export default class MegotaNumber {
      * @return `1`, `-1`, `0`, or `NaN` based on the comparison.
      */
     public compareTo(other: MegotaNumber): 1 | -1 | 0 | typeof NaN {
+        // Early returns for special cases
         if (this.isNaN() || other.isNaN()) {
             return NaN;
         }
 
-        if (this.isPositiveInfinity() && other.isNegativeInfinity()) {
-            return this.sign;
+        // Handle infinity cases quickly
+        if (this.isInfinite() || other.isInfinite()) {
+            if (this.isPositiveInfinity() && other.isNegativeInfinity()) {
+                return 1;
+            }
+            if (this.isNegativeInfinity() && other.isPositiveInfinity()) {
+                return -1;
+            }
+            if (this.isInfinite() && other.isInfinite()) {
+                return this.sign === other.sign ? 0 : this.sign;
+            }
+            return this.isInfinite() ? this.sign : -other.sign;
         }
 
-        if (other.isPositiveInfinity() && this.isNegativeInfinity()) {
-            return -this.sign;
-        }
-
-        if (this.array.length == 1 && this.array[0][2] === 0 && other.array.length == 1 && other.array[0][2] === 0)
+        // Handle zero case - both numbers are exactly zero
+        if (this.array.length === 1 && this.array[0][2] === 0 &&
+            other.array.length === 1 && other.array[0][2] === 0) {
             return 0;
+        }
 
-        if (this.sign != other.sign)
-            return this.sign;
+        // If signs differ, the positive number is always greater
+        if (this.sign !== other.sign) {
+            return this.sign as 1 | -1;
+        }
 
+        // For same signs, we need to compare magnitudes
+        // If sign is negative, we need to invert the comparison result at the end
         const m = this.sign;
-        let r: number | undefined = undefined;
-        if (this.layer > other.layer) {
-            r = 1;
+
+        // Compare layers - higher layer means larger magnitude
+        if (this.layer !== other.layer) {
+            return (this.layer > other.layer ? 1 : -1) * m as 1 | -1;
         }
-        else if (this.layer < other.layer) {
-            r = -1;
-        }
-        else {
-            let e: Array<number>;
-            let f: Array<number>;
-            const l = 0;
-            for (let i = 0, l = Math.min(this.array.length, other.array.length); i < l; ++i) {
-                e = this.array[this.array.length - 1 - i];
-                f = other.array[other.array.length - 1 - i];
-                if (e[0] > f[0] || e[0] == f[0] && e[1] > f[1] || e[1] == f[1] && e[2] > f[2]) {
-                    r = 1;
-                    break;
-                } else if (e[0] < f[0] || e[0] == f[0] && e[1] < f[1] || e[1] == f[1] && e[2] < f[2]) {
-                    r = -1;
-                    break;
-                }
+
+        // Compare array elements from most significant to least significant
+        // We iterate from the end (highest magnitude) to the beginning
+        const thisLen = this.array.length;
+        const otherLen = other.array.length;
+        const minLength = Math.min(thisLen, otherLen);
+
+        for (let i = 0; i < minLength; i++) {
+            const thisElem = this.array[thisLen - 1 - i];
+            const otherElem = other.array[otherLen - 1 - i];
+
+            // Compare layer
+            if (thisElem[0] !== otherElem[0]) {
+                return (thisElem[0] > otherElem[0] ? 1 : -1) * m as 1 | -1;
             }
-            if (r === undefined) {
-                if (this.array.length == other.array.length) {
-                    r = 0;
-                } else if (this.array.length > other.array.length) {
-                    e = this.array[this.array.length - l];
-                    if (e[0] >= 1 || e[1] > 10) {
-                        r = 1;
-                    } else {
-                        r = -1;
-                    }
-                } else {
-                    e = other.array[other.array.length - l];
-                    if (e[0] >= 1 || e[1] > 10) {
-                        r = -1;
-                    } else {
-                        r = 1;
-                    }
-                }
+
+            // Compare operation type
+            if (thisElem[1] !== otherElem[1]) {
+                return (thisElem[1] > otherElem[1] ? 1 : -1) * m as 1 | -1;
+            }
+
+            // Compare coefficient
+            if (thisElem[2] !== otherElem[2]) {
+                return (thisElem[2] > otherElem[2] ? 1 : -1) * m as 1 | -1;
             }
         }
-        return r * m;
+
+        // If we've compared all elements and they match so far, check array lengths
+        if (thisLen !== otherLen) {
+            // The number with the longer array is only greater if it has a significant term
+            // Skip this check if all arrays have been the same so far
+            const longerArray = thisLen > otherLen ? this.array : other.array;
+            const extraElem = longerArray[Math.abs(thisLen - otherLen) - 1];
+
+            if (extraElem[0] >= 1 || extraElem[1] > 10) {
+                // The extra element is significant
+                return (thisLen > otherLen ? 1 : -1) * m as 1 | -1;
+            } else {
+                // The extra element is not significant
+                return (thisLen < otherLen ? 1 : -1) * m as 1 | -1;
+            }
+        }
+
+        // Arrays are identical
+        return 0;
     }
 
     /**
@@ -822,143 +844,162 @@ export default class MegotaNumber {
      * @returns `true` if the numbers are considered equal within the specified tolerance, otherwise `false`.
      */
     public equals_tolerance(other: MegotaNumber, tolerance = 1e-7): boolean {
-        if (this.isNaN() || other.isNaN() || this.isFinite() != other.isFinite())
+        // Early returns for special cases
+        if (this.isNaN() || other.isNaN() || this.isFinite() !== other.isFinite())
             return false;
 
-        if (this.sign != other.sign)
+        if (this.sign !== other.sign)
             return false;
 
+        // Special case for numbers very close to zero
+        if ((this.equals(MegotaNumber.ZERO) || other.equals(MegotaNumber.ZERO)) &&
+            this.abs().lessThan(MegotaNumber.fromNumber(tolerance)) &&
+            other.abs().lessThan(MegotaNumber.fromNumber(tolerance))) {
+            return true;
+        }
+
+        // Check layer difference - if more than 1, numbers are definitely different
         if (Math.abs(this.layer - other.layer) > 1)
             return false;
 
-        let a: number | undefined;
-        let b: number | undefined;
-
-        if (this.layer != other.layer) {
+        // If layers differ by exactly 1, we need special handling
+        if (this.layer !== other.layer) {
             const higherLayerNumber = this.layer > other.layer ? this : other;
             const lowerLayerNumber = this.layer > other.layer ? other : this;
 
-            if (!(higherLayerNumber.array.length == 2 &&
+            // Check if higher layer number has the specific structure required for possible equality
+            if (!(higherLayerNumber.array.length === 2 &&
                 higherLayerNumber.array[0][0] === 0 &&
                 higherLayerNumber.array[0][1] === 0 &&
                 higherLayerNumber.array[1][0] === 0 &&
-                higherLayerNumber.array[1][1] == 1 &&
-                higherLayerNumber.array[1][2] == 1))
+                higherLayerNumber.array[1][1] === 1 &&
+                higherLayerNumber.array[1][2] === 1))
                 return false;
 
-            a = higherLayerNumber.array[0][2];
+            // Calculate logarithmic values for comparison
+            const a = higherLayerNumber.array[0][2];
 
+            // Calculate corresponding logarithmic value for lower layer number
             const lastElem = lowerLayerNumber.array[lowerLayerNumber.array.length - 1];
-            if (lastElem[1] >= 10) {
-                b = Math.log10(lastElem[1] + 1);
-            } else {
-                b = Math.log10(lastElem[1]);
-            }
-        } else {
-            const maxLength = Math.max(this.array.length, other.array.length);
+            const b = lastElem[1] >= 10 ? Math.log10(lastElem[1] + 1) : Math.log10(lastElem[1]);
 
-            if (Math.abs(this.array[this.array.length - 1][1] - other.array[other.array.length - 1][1]) > 1)
-                return false;
-
-            for (let i = 1; maxLength - i >= 0; ++i) {
-                const thisIdx = this.array.length - i;
-                const otherIdx = other.array.length - i;
-
-                // Skip if index is out of bounds for either array
-                if (thisIdx < 0 || otherIdx < 0) continue;
-
-                const thisValue = this.array[thisIdx][1];
-                const otherValue = other.array[otherIdx][1];
-
-                if (thisValue != otherValue) {
-                    // Different values case
-                    const largerValueNum = thisValue > otherValue ? this : other;
-                    const smallerValueNum = thisValue > otherValue ? other : this;
-                    const largerValue = thisValue > otherValue ? thisValue : otherValue;
-                    const largerIdx = largerValueNum.array.length - i;
-
-                    const e = largerValueNum.array[largerIdx][2];
-                    const f = 0;
-
-                    if (Math.abs(e - f) > 1) {
-                        return false;
-                    }
-
-                    if (!(largerIdx < 2 ||
-                        (largerIdx == 2 &&
-                            largerValueNum.array[0][0] === 0 &&
-                            largerValueNum.array[0][1] === 0 &&
-                            largerValueNum.array[1][0] === 0 &&
-                            largerValueNum.array[1][1] == 1 &&
-                            largerValueNum.array[1][2] == 1))) {
-                        return false;
-                    }
-
-                    a = largerValueNum.array[0][2];
-
-                    if (largerValue == 1) {
-                        b = Math.log10(smallerValueNum.operator([0, 0]));
-                    } else if (largerValue == 2 && smallerValueNum.operator([0, 0]) >= 1e10) {
-                        b = Math.log10(smallerValueNum.operator([0, 1]) + 2);
-                    } else if (smallerValueNum.operator([0, largerValue - 2]) >= 10) {
-                        b = Math.log10(smallerValueNum.operator([0, largerValue - 1]) + 1);
-                    } else {
-                        b = Math.log10(smallerValueNum.operator([0, largerValue - 1]));
-                    }
-                    break;
-                } else {
-                    // Same values case
-                    const e = this.array[thisIdx][2];
-                    const f = other.array[otherIdx][2];
-
-                    if (thisIdx == 0) {
-                        a = e;
-                        b = f;
-                        break;
-                    }
-
-                    if (Math.abs(e - f) > 1) {
-                        return false;
-                    }
-
-                    if (e !== f) {
-                        const higherValueNum = e > f ? this : other;
-                        const lowerValueNum = e > f ? other : this;
-                        const higherIdx = higherValueNum.array.length - i;
-                        const c = thisValue; // or otherValue, they're the same
-
-                        if (!(higherIdx < 2 ||
-                            (higherIdx == 2 &&
-                                higherValueNum.array[0][0] === 0 &&
-                                higherValueNum.array[0][1] === 0 &&
-                                higherValueNum.array[1][0] === 0 &&
-                                higherValueNum.array[1][1] == 1 &&
-                                higherValueNum.array[1][2] == 1))) {
-                            return false;
-                        }
-
-                        a = higherValueNum.array[0][2];
-
-                        if (c == 1) {
-                            b = Math.log10(lowerValueNum.operator([0, 0]));
-                        } else if (c == 2 && lowerValueNum.operator([0, 0]) >= 1e10) {
-                            b = Math.log10(lowerValueNum.operator([0, 1]) + 2);
-                        } else if (lowerValueNum.operator([0, c - 2]) >= 10) {
-                            b = Math.log10(lowerValueNum.operator([0, c - 1]) + 1);
-                        } else {
-                            b = Math.log10(lowerValueNum.operator([0, c - 1]));
-                        }
-                        break;
-                    }
-                }
-            }
+            // Compare with tolerance
+            return Math.abs(a - b) <= tolerance * Math.max(Math.abs(a), Math.abs(b));
         }
 
-        if (a === undefined || b === undefined) {
+        // For same layer, compare array elements
+        const maxLength = Math.max(this.array.length, other.array.length);
+
+        // Check if the highest operation types differ by more than 1
+        if (Math.abs(this.array[this.array.length - 1][1] - other.array[other.array.length - 1][1]) > 1)
             return false;
+
+        // Compare array elements from highest significance to lowest
+        for (let i = 1; maxLength - i >= 0; i++) {
+            const thisIdx = this.array.length - i;
+            const otherIdx = other.array.length - i;
+
+            // Skip if index is out of bounds for either array
+            if (thisIdx < 0 || otherIdx < 0) continue;
+
+            const thisElem = this.array[thisIdx];
+            const otherElem = other.array[otherIdx];
+
+            // Operation types differ
+            if (thisElem[1] !== otherElem[1]) {
+                // Values must differ by at most 1 for possible tolerance equality
+                if (Math.abs(thisElem[1] - otherElem[1]) > 1)
+                    return false;
+
+                const largerValueNum = thisElem[1] > otherElem[1] ? this : other;
+                const smallerValueNum = thisElem[1] > otherElem[1] ? other : this;
+                const largerValue = Math.max(thisElem[1], otherElem[1]);
+                const largerIdx = largerValueNum.array.length - i;
+
+                // Coefficient of larger operation type value must be small
+                if (largerValueNum.array[largerIdx][2] > 1)
+                    return false;
+
+                // Must be near base level for tolerance comparison
+                if (largerIdx >= 3)
+                    return false;
+
+                if (!(largerIdx < 2 ||
+                    (largerIdx === 2 &&
+                        largerValueNum.array[0][0] === 0 &&
+                        largerValueNum.array[0][1] === 0 &&
+                        largerValueNum.array[1][0] === 0 &&
+                        largerValueNum.array[1][1] === 1 &&
+                        largerValueNum.array[1][2] === 1)))
+                    return false;
+
+                // Calculate logarithmic values for comparison
+                const a = largerValueNum.array[0][2];
+                let b: number;
+
+                if (largerValue === 1) {
+                    b = Math.log10(smallerValueNum.operator([0, 0]));
+                } else if (largerValue === 2 && smallerValueNum.operator([0, 0]) >= 1e10) {
+                    b = Math.log10(smallerValueNum.operator([0, 1]) + 2);
+                } else if (smallerValueNum.operator([0, largerValue - 2]) >= 10) {
+                    b = Math.log10(smallerValueNum.operator([0, largerValue - 1]) + 1);
+                } else {
+                    b = Math.log10(smallerValueNum.operator([0, largerValue - 1]));
+                }
+
+                // Compare with tolerance
+                return Math.abs(a - b) <= tolerance * Math.max(Math.abs(a), Math.abs(b));
+            }
+
+            // Same operation type, compare coefficients
+            if (thisElem[2] !== otherElem[2]) {
+                // Base values can be directly compared
+                if (thisIdx === 0) {
+                    const a = thisElem[2];
+                    const b = otherElem[2];
+                    return Math.abs(a - b) <= tolerance * Math.max(Math.abs(a), Math.abs(b));
+                }
+
+                // Values must differ by at most 1 for possible tolerance equality
+                if (Math.abs(thisElem[2] - otherElem[2]) > 1)
+                    return false;
+
+                const highCoef = thisElem[2] > otherElem[2] ? this : other;
+                const lowCoef = thisElem[2] > otherElem[2] ? other : this;
+                const highIdx = highCoef.array.length - i;
+                const opType = thisElem[1]; // Same for both
+
+                // Must be near base level for tolerance comparison
+                if (!(highIdx < 2 ||
+                    (highIdx === 2 &&
+                        highCoef.array[0][0] === 0 &&
+                        highCoef.array[0][1] === 0 &&
+                        highCoef.array[1][0] === 0 &&
+                        highCoef.array[1][1] === 1 &&
+                        highCoef.array[1][2] === 1)))
+                    return false;
+
+                // Calculate logarithmic values for comparison  
+                const a = highCoef.array[0][2];
+                let b: number;
+
+                if (opType === 1) {
+                    b = Math.log10(lowCoef.operator([0, 0]));
+                } else if (opType === 2 && lowCoef.operator([0, 0]) >= 1e10) {
+                    b = Math.log10(lowCoef.operator([0, 1]) + 2);
+                } else if (lowCoef.operator([0, opType - 2]) >= 10) {
+                    b = Math.log10(lowCoef.operator([0, opType - 1]) + 1);
+                } else {
+                    b = Math.log10(lowCoef.operator([0, opType - 1]));
+                }
+
+                // Compare with tolerance
+                return Math.abs(a - b) <= tolerance * Math.max(Math.abs(a), Math.abs(b));
+            }
         }
 
-        return Math.abs(a - b) <= tolerance * Math.max(Math.abs(a), Math.abs(b));
+        // All compared elements match within tolerance
+        return true;
     }
 
     /**
@@ -1035,9 +1076,17 @@ export default class MegotaNumber {
      * Returns the minimum of this MegotaNumber and another MegotaNumber.
      * 
      * @param other The other MegotaNumber to compare against.
+     * @param inplace If `true`, modifies the current instance instead of creating a new one.
      * @returns The smaller of the two MegotaNumbers.
      */
-    public min(other: MegotaNumber): MegotaNumber {
+    public min(other: MegotaNumber, inplace?: boolean): MegotaNumber {
+        if (this.isNaN())
+            return inplace === true ? this : this.clone();
+
+        if (inplace === true) {
+            return this.lessThan(other) ? this : other;
+        }
+
         return this.lessThan(other) ? this.clone() : other.clone();
     }
 
@@ -1045,9 +1094,17 @@ export default class MegotaNumber {
      * Returns the maximum of this MegotaNumber and another MegotaNumber.
      * 
      * @param other The other MegotaNumber to compare against.
+     * @param inplace If `true`, modifies the current instance instead of creating a new one.
      * @returns The larger of the two MegotaNumbers.
      */
-    public max(other: MegotaNumber): MegotaNumber {
+    public max(other: MegotaNumber, inplace?: boolean): MegotaNumber {
+        if (this.isNaN())
+            return inplace === true ? this : this.clone();
+
+        if (inplace === true) {
+            return this.greaterThan(other) ? this : other;
+        }
+
         return this.greaterThan(other) ? this.clone() : other.clone();
     }
 
@@ -1059,123 +1116,183 @@ export default class MegotaNumber {
      * @returns The normalized MegotaNumber instance.
      */
     public normalize(): MegotaNumber {
-        let b: boolean = true;
-
+        // Early returns for special cases
         if (!this.array || !this.array.length) {
             this.array = [[0, 0, 0]];
+            return this;
         }
 
+        // Handle sign normalization once
         if (this.sign !== 1 && this.sign !== -1) {
-            const sign = typeof this.sign === "number" ? this.sign : Number(this.sign);
-            this.sign = sign < 0 ? -1 : 1;
+            this.sign = typeof this.sign === "number" ? (this.sign < 0 ? -1 : 1) : 1;
         }
 
+        // Handle large layer immediately
         if (this.layer > PrimitiveConstants.MAX_SAFE_INTEGER) {
             this.array = [[0, 0, Infinity]];
             this.layer = 0;
             return this;
         }
-        if (Number.isInteger(this.layer)) {
+
+        // Ensure layer is an integer
+        if (this.layer !== Math.floor(this.layer)) {
             this.layer = Math.floor(this.layer);
         }
-        for (let i = 0; i < this.array.length; ++i) {
-            const e = this.array[i];
-            if (e[0] === null || e[0] === undefined) {
-                e[0] = 0;
-            }
 
-            if ((e[0] !== 0 || e[1] !== 0) && (e[2] === 0 || e[2] === null || e[2] === undefined)) {
+        // Check for NaN or Infinity in a single pass with early returns
+        for (let i = 0; i < this.array.length; i++) {
+            const e = this.array[i];
+
+            // Fix undefined/null values
+            if (e[0] === null || e[0] === undefined) e[0] = 0;
+
+            // Remove elements with zero coefficient (except the base element)
+            if ((e[0] !== 0 || e[1] !== 0) && !e[2]) {
                 this.array.splice(i, 1);
-                --i;
+                i--;
                 continue;
             }
 
+            // Early return for NaN
             if (isNaN(e[0]) || isNaN(e[1]) || isNaN(e[2])) {
                 this.array = [[0, 0, NaN]];
                 return this;
             }
 
+            // Early return for Infinity
             if (!isFinite(e[0]) || !isFinite(e[1]) || !isFinite(e[2])) {
                 this.array = [[0, 0, Infinity]];
                 return this;
             }
 
-            if (!Number.isInteger(e[0])) {
-                e[0] = Math.floor(e[0]);
-            }
-
-            if (!Number.isInteger(e[1])) {
-                e[1] = Math.floor(e[1]);
-            }
-
+            // Ensure integers where needed
+            if (!Number.isInteger(e[0])) e[0] = Math.floor(e[0]);
+            if (!Number.isInteger(e[1])) e[1] = Math.floor(e[1]);
             if ((e[0] !== 0 || e[1] !== 0) && !Number.isInteger(e[2])) {
                 e[2] = Math.floor(e[2]);
             }
         }
 
-        do {
-            b = false;
-            this.array.sort((a, b) => a[1] > b[1] ? 1 : a[1] < b[1] ? -1 : 0);
-            this.array.sort((a, b) => a[0] > b[0] ? 1 : a[0] < b[0] ? -1 : 0);
-            if (this.array.length > MegotaNumber.maxOps) {
-                this.array.splice(0, this.array.length - MegotaNumber.maxOps);
-            }
+        // Sorting - sort only once before the main normalization loop
+        // Sort by layer first, then by operation type
+        this.array.sort((a, b) => {
+            if (a[0] !== b[0]) return a[0] - b[0];
+            return a[1] - b[1];
+        });
 
+        // Truncate if too many operations
+        if (this.array.length > MegotaNumber.maxOps) {
+            this.array = this.array.slice(-MegotaNumber.maxOps);
+        }
+
+        // Main normalization loop - run until no more changes
+        let changed = true;
+        const maxIterations = 100; // Prevent infinite loops
+        let iterations = 0;
+
+        while (changed && iterations < maxIterations) {
+            iterations++;
+            changed = false;
+
+            // Handle empty array
             if (!this.array.length) {
                 this.array = [[0, 0, 0]];
+                changed = true;
+                continue;
             }
 
-            if (this.array[this.array.length - 1][0] > PrimitiveConstants.MAX_SAFE_INTEGER) {
+            // Handle layer promotion
+            const lastIndex = this.array.length - 1;
+            if (this.array[lastIndex][0] > PrimitiveConstants.MAX_SAFE_INTEGER) {
                 this.layer++;
-                this.array = [[0, 0, this.array[this.array.length - 1][0]]];
-                b = true;
-            }
-            else if (this.layer && this.array.length == 1 && this.array[0][0] === 0 && this.array[0][1] === 0) {
-                this.layer--;
-                if (this.array[0][2] === 0) this.array = [[0, 0, 10]];
-                else this.array = [[0, 0, 10], [Math.round(this.array[0][2]), 0, 1]];
-                b = true;
+                this.array = [[0, 0, this.array[lastIndex][0]]];
+                changed = true;
+                continue;
             }
 
+            // Handle layer demotion
+            if (this.layer && this.array.length === 1 && this.array[0][0] === 0 && this.array[0][1] === 0) {
+                this.layer--;
+                if (this.array[0][2] === 0) {
+                    this.array = [[0, 0, 10]];
+                } else {
+                    this.array = [[0, 0, 10], [Math.round(this.array[0][2]), 0, 1]];
+                }
+                changed = true;
+                continue;
+            }
+
+            // Ensure the first element is a base element if needed
             if (this.array.length < MegotaNumber.maxOps && (this.array[0][0] !== 0 || this.array[0][1] !== 0)) {
                 this.array.unshift([0, 0, 10]);
+                changed = true;
+                continue;
             }
 
-            for (let i = 0; i < this.array.length - 1; ++i) {
-                if (this.array[i][0] == this.array[i + 1][0] && this.array[i][1] == this.array[i + 1][1]) {
+            // Combine like terms - use a single pass with direct checks
+            for (let i = 0; i < this.array.length - 1; i++) {
+                if (this.array[i][0] === this.array[i + 1][0] && this.array[i][1] === this.array[i + 1][1]) {
                     this.array[i][2] += this.array[i + 1][2];
                     this.array.splice(i + 1, 1);
-                    --i;
-                    b = true;
+                    i--;
+                    changed = true;
                 }
             }
+
+            // Handle large base value conversion to scientific notation
             if (this.array[0][0] === 0 && this.array[0][1] === 0 && this.array[0][2] > PrimitiveConstants.MAX_SAFE_INTEGER) {
-                if (this.array.length >= 2 && this.array[1][0] == 0 && this.array[1][1] == 1) {
+                if (this.array.length >= 2 && this.array[1][0] === 0 && this.array[1][1] === 1) {
                     this.array[1][2]++;
                 } else {
                     this.array.splice(1, 0, [0, 1, 1]);
                 }
                 this.array[0][2] = Math.log10(this.array[0][2]);
-                b = true;
+                changed = true;
+                continue;
             }
-            while (this.array.length >= 2 && this.array[0][0] === 0 && this.array[0][1] === 0 && this.array[0][2] < PrimitiveConstants.MAX_E && this.array[1][0] == 0 && this.array[1][1] == 1 && this.array[1][2]) {
+
+            // Handle scientific notation conversion back to normal
+            if (this.array.length >= 2 &&
+                this.array[0][0] === 0 &&
+                this.array[0][1] === 0 &&
+                this.array[0][2] < PrimitiveConstants.MAX_E &&
+                this.array[1][0] === 0 &&
+                this.array[1][1] === 1 &&
+                this.array[1][2]) {
+
                 this.array[0][2] = Math.pow(10, this.array[0][2]);
                 if (this.array[1][2] > 1) {
                     this.array[1][2]--;
                 } else {
                     this.array.splice(1, 1);
                 }
-                b = true;
+                changed = true;
+                continue;
             }
-            while (this.array.length >= 2 && this.array[0][0] === 0 && this.array[0][1] === 0 && this.array[0][2] == 1 && this.array[1][2]) {
+
+            // Handle base-1 conversion
+            if (this.array.length >= 2 &&
+                this.array[0][0] === 0 &&
+                this.array[0][1] === 0 &&
+                this.array[0][2] === 1 &&
+                this.array[1][2]) {
+
                 if (this.array[1][2] > 1) {
                     this.array[1][2]--;
                 } else {
                     this.array.splice(1, 1);
                 }
                 this.array[0][2] = 10;
+                changed = true;
+                continue;
             }
-            if (this.array.length >= 2 && this.array[0][0] === 0 && this.array[0][1] === 0 && (this.array[1][0] > 0 || this.array[1][1] != 1)) {
+
+            // Handle special case for high-level operations
+            if (this.array.length >= 2 &&
+                this.array[0][0] === 0 &&
+                this.array[0][1] === 0 &&
+                (this.array[1][0] > 0 || this.array[1][1] !== 1)) {
+
                 if (this.array[0][2]) {
                     this.array.splice(1, 0, [this.array[1][0], this.array[1][1] - 1, this.array[0][2]]);
                 }
@@ -1183,53 +1300,64 @@ export default class MegotaNumber {
                 this.array[0][2] = 1;
                 if (this.array[2][2] > 1) {
                     this.array[2][2]--;
-                }
-                else {
+                } else {
                     this.array.splice(2, 1);
                 }
 
-                if (this.array[1][1] == -1) {
+                if (this.array[1][1] === -1) {
                     this.array[1] = [this.array[1][0] - 1, this.array[1][2], 1];
                     this.array[0][2] = 10;
                 }
-                b = true;
+                changed = true;
+                continue;
             }
-            for (let i = 1; i < this.array.length; ++i) {
+
+            // Handle large operation types and coefficients (combine these checks)
+            for (let i = 1; i < this.array.length; i++) {
+                // Check for large operation types
                 if (this.array[i][1] > PrimitiveConstants.MAX_SAFE_INTEGER) {
-                    if (i != this.array.length - 1 && this.array[i + 1][0] == this.array[i][0] + 1) {
+                    if (i !== this.array.length - 1 && this.array[i + 1][0] === this.array[i][0] + 1) {
                         this.array[i + 1][0]++;
                     } else {
                         this.array.splice(i + 1, 0, [this.array[i][0] + 1, 0, 1]);
-                        b = true;
                     }
+
                     if (this.array[0][0] === 0 && this.array[0][1] === 0) {
                         this.array[0][2] = this.array[i][1] + 1;
                     } else {
-                        this.array.splice(0, 0, [0, 0, this.array[i][1] + 1]);
+                        this.array.unshift([0, 0, this.array[i][1] + 1]);
                     }
+
                     this.array.splice(1, i);
-                    b = true;
+                    changed = true;
+                    break; // Break to avoid processing a modified array
                 }
+
+                // Check for large coefficients
                 if (this.array[i][2] > PrimitiveConstants.MAX_SAFE_INTEGER) {
-                    if (i != this.array.length - 1 && this.array[i + 1][0] == this.array[i][0] + 1) {
+                    if (i !== this.array.length - 1 && this.array[i + 1][0] === this.array[i][0] + 1) {
                         this.array[i + 1][2]++;
                     } else {
                         this.array.splice(i + 1, 0, [this.array[i][0], this.array[i][1] + 1, 1]);
                     }
+
                     if (this.array[0][0] === 0 && this.array[0][1] === 0) {
                         this.array[0][2] = this.array[i][2] + 1;
                     } else {
-                        this.array.splice(0, 0, [0, 0, this.array[i][2] + 1]);
+                        this.array.unshift([0, 0, this.array[i][2] + 1]);
                     }
+
                     this.array.splice(1, i);
-                    b = true;
+                    changed = true;
+                    break; // Break to avoid processing a modified array
                 }
             }
         }
-        while (b);
 
-        if (!this.array.length)
+        // Final check - ensure we have at least one element
+        if (!this.array.length) {
             this.array = [[0, 0, 0]];
+        }
 
         return this;
     }
@@ -1241,47 +1369,105 @@ export default class MegotaNumber {
      * @returns A new MegotaNumber that is the sum of this and the other.
      */
     public add(other: MegotaNumber): MegotaNumber {
-        const x = this.clone();
+        // Handle common cases first for early returns
+        if (this.equals(MegotaNumber.ZERO) || other.isNaN()) // 0+y = y, x+NaN = NaN
+            return other.clone();
 
-        if (x.sign == -1)
-            return x.negate().add(other.negate()).negate();
+        if (other.equals(MegotaNumber.ZERO) || this.isNaN()) // x+0 = x, NaN+y = NaN
+            return this.clone();
 
-        if (other.sign == -1)
-            return x.sub(other.negate());
-
-        if (x.equals(MegotaNumber.ZERO))
-            return other;
-
-        if (other.equals(MegotaNumber.ZERO))
-            return x;
-
-        if (x.isNaN() || other.isNaN() || x.isInfinite() && other.isInfinite() && x.equals(other.negate()))
-            return MegotaNumber.NaN.clone();
-
-        if (x.isInfinite())
-            return x;
-
-        if (other.isInfinite())
-            return other;
-
-        const p = x.min(other);
-        const q = x.max(other);
-        const op0 = q.operator([0, 0]);
-        const op1 = q.operator([0, 1]);
-
-        let t: MegotaNumber | undefined;
-        if (q.greaterThan(MegotaNumber.E_MAX_SAFE_INTEGER) || q.div(p).greaterThan(MegotaNumber.MAX_SAFE_INTEGER)) {
-            t = q;
+        // Handle infinity cases
+        const thisIsInfinite = this.isInfinite();
+        const otherIsInfinite = other.isInfinite();
+        if (thisIsInfinite === true) {
+            if (otherIsInfinite === true) {
+                if (this.sign === other.sign) {
+                    return this.clone(); // Both infinities of the same sign
+                } else {
+                    return MegotaNumber.NaN.clone(); // Infinity - Infinity is undefined
+                }
+            }
         }
-        else if (!op1) {
-            t = MegotaNumber.fromNumber(x.toNumber() + other.toNumber());
-        }
-        else if (op1 == 1) {
-            const a = p.operator([0, 1]) ? p.operator([0, 0]) : Math.log10(p.operator([0, 0]));
-            t = MegotaNumber.fromOmegaNum([a + Math.log10(Math.pow(10, op0 - a) + 1), 1]);
+        if (otherIsInfinite === true) { // `this` is finite, `other` is infinite
+            return other.clone(); // Return the other infinity
         }
 
-        return t || MegotaNumber.NaN.clone();
+        // Handle sign differences
+        if (this.sign === -1 && other.sign === -1)
+            return this.abs().add(other.abs()).negate();
+
+        if (this.sign === -1)
+            return other.sub(this.abs());
+
+        if (other.sign === -1)
+            return this.sub(other.abs());
+
+        // Both numbers are now positive
+
+        // Handle normal number cases
+        // For small numbers, direct addition is faster
+        if (this.lessThan(MegotaNumber.MAX_SAFE_INTEGER) &&
+            other.lessThan(MegotaNumber.MAX_SAFE_INTEGER)) {
+            return MegotaNumber.fromNumber(this.toNumber() + other.toNumber());
+        }
+
+        // For large numbers, determine which is larger
+        const larger = this.greaterThan(other) ? this : other;
+        const smaller = this.greaterThan(other) ? other : this;
+
+        // If one number dominates, return the larger one
+        if (larger.greaterThan(MegotaNumber.E_MAX_SAFE_INTEGER) ||
+            larger.div(smaller).greaterThan(MegotaNumber.MAX_SAFE_INTEGER)) {
+            return larger.clone();
+        }
+
+        // Handle scientific notation cases
+        const largerOp1 = larger.operator([0, 1]);
+
+        if (largerOp1 === 0) {
+            // Regular numbers
+            return MegotaNumber.fromNumber(this.toNumber() + other.toNumber());
+        }
+        else if (largerOp1 === 1) {
+            // Scientific notation (e.g., 1e10 + 1e9)
+            const result = new MegotaNumber();
+            const largerOp0 = larger.operator([0, 0]);
+            const smallerOp1 = smaller.operator([0, 1]);
+
+            if (smallerOp1) {
+                // Both in scientific notation
+                const smallerOp0 = smaller.operator([0, 0]);
+                const diff = largerOp0 - smallerOp0;
+
+                // If the difference is significant, approximation is good enough
+                if (diff > 15) {
+                    return larger.clone();
+                }
+
+                // 10^(x+log(10^diff+1)) = 10^x+10^y
+                const newCoefficient = smallerOp0 + Math.log10(Math.pow(10, diff) + 1);
+
+                result.array = [[0, 0, newCoefficient], [0, 1, 1]];
+                return result.normalize();
+            }
+            else {
+                // Only larger is in scientific notation
+                const smallerValue = smaller.operator([0, 0]);
+
+                // If smaller is negligible compared to larger, return larger
+                if (largerOp0 > Math.log10(smallerValue) + 15) {
+                    return larger.clone();
+                }
+
+                const newCoefficient = largerOp0 + Math.log10(1 + Math.pow(10, -largerOp0) * smallerValue);
+
+                result.array = [[0, 0, newCoefficient], [0, 1, 1]];
+                return result.normalize();
+            }
+        }
+
+        // Higher order operations (e.g., tetration)
+        return larger.clone();
     }
 
     /**
@@ -1291,50 +1477,131 @@ export default class MegotaNumber {
      * @returns A new MegotaNumber that is the result of the subtraction.
      */
     public sub(other: MegotaNumber): MegotaNumber {
-        const x = this.clone();
-
-        if (x.sign == -1)
-            return x.negate().sub(other.negate()).negate();
-
-        if (other.sign == -1)
-            return x.add(other.negate());
-
-        if (x.equals(other))
+        // Handle common cases first for early returns
+        if (this.equals(other))
             return MegotaNumber.ZERO.clone();
 
         if (other.equals(MegotaNumber.ZERO))
-            return x;
+            return this.clone();
 
-        if (x.isNaN() || other.isNaN() || x.isInfinite() && other.isInfinite())
+        if (this.isNaN() || other.isNaN())
             return MegotaNumber.NaN.clone();
 
-        if (x.isInfinite())
-            return x;
+        // Handle sign differences
+        if (this.sign === -1)
+            return this.negate().sub(other.negate()).negate();
+
+        if (other.sign === -1)
+            return this.add(other.abs());
+
+        // Both numbers are now positive
+        // Handle infinity cases
+        if (this.isInfinite() && other.isInfinite())
+            return MegotaNumber.NaN.clone();
+
+        if (this.isInfinite())
+            return this.clone();
 
         if (other.isInfinite())
             return other.negate();
 
-        const p = x.min(other);
-        const q = x.max(other);
-        const n = other.greaterThan(x);
-        const op0 = q.operator([0, 0]);
-        const op1 = q.operator([0, 1]);
+        // Determine which number is larger for the actual subtraction
+        const comparison = this.compareTo(other);
+        if (comparison === 0) // Equal numbers
+            return MegotaNumber.ZERO.clone();
 
-        let t: MegotaNumber | undefined;
-        if (q.greaterThan(MegotaNumber.E_MAX_SAFE_INTEGER) || q.div(p).greaterThan(MegotaNumber.MAX_SAFE_INTEGER)) {
-            t = q;
-            t = n ? t.negate() : t;
-        }
-        else if (!op1) {
-            t = MegotaNumber.fromNumber(x.toNumber() - other.toNumber());
-        }
-        else if (op1 == 1) {
-            const a = p.operator([0, 1]) ? p.operator([0, 0]) : Math.log10(p.operator([0, 0]));
-            t = MegotaNumber.fromOmegaNum([a + Math.log10(Math.pow(10, op0 - a) - 1), 1]);
-            t = n ? t.negate() : t;
+        const larger = comparison > 0 ? this : other;
+        const smaller = comparison > 0 ? other : this;
+        const resultSign = comparison > 0 ? 1 : -1;
+
+        // If one number dominates, return the larger one with appropriate sign
+        if (larger.greaterThan(MegotaNumber.E_MAX_SAFE_INTEGER) ||
+            larger.div(smaller).greaterThan(MegotaNumber.MAX_SAFE_INTEGER)) {
+            const result = larger.clone();
+            result.sign = resultSign;
+            return result;
         }
 
-        return t || MegotaNumber.NaN.clone();
+        // For small numbers, direct subtraction is faster
+        if (larger.lessThan(MegotaNumber.MAX_SAFE_INTEGER) &&
+            smaller.lessThan(MegotaNumber.MAX_SAFE_INTEGER)) {
+            const result = MegotaNumber.fromNumber(this.toNumber() - other.toNumber());
+            return result;
+        }
+
+        // Handle scientific notation cases
+        const largerOp1 = larger.operator([0, 1]);
+
+        if (!largerOp1) {
+            // Regular numbers
+            const result = MegotaNumber.fromNumber(this.toNumber() - other.toNumber());
+            return result;
+        }
+        else if (largerOp1 === 1) {
+            // Scientific notation (e.g., 1e10 - 1e9)
+            const result = new MegotaNumber();
+            const largerOp0 = larger.operator([0, 0]);
+            const smallerOp1 = smaller.operator([0, 1]);
+
+            if (smallerOp1) {
+                // Both in scientific notation
+                const smallerOp0 = smaller.operator([0, 0]);
+                const diff = largerOp0 - smallerOp0;
+
+                // If the difference is significant, approximation is good enough
+                if (diff > 15) {
+                    const ret = larger.clone();
+                    ret.sign = resultSign;
+                    return ret;
+                }
+
+                // Calculate directly: smallerOp0 + log10(10^(diff) - 1)
+                const newCoefficient = smallerOp0 + Math.log10(Math.pow(10, diff) - 1);
+
+                // Create the result manually
+                result.array = [[0, 0, newCoefficient], [0, 1, 1]];
+                result.sign = resultSign;
+                return result.normalize();
+            }
+            else {
+                // Only larger is in scientific notation
+                const smallerValue = smaller.operator([0, 0]);
+
+                // For very large numbers compared to smaller ones, return larger with appropriate sign
+                if (largerOp0 > Math.log10(smallerValue) + 15) {
+                    const ret = larger.clone();
+                    ret.sign = resultSign;
+                    return ret;
+                }
+
+                // Calculate the actual result for closer numbers
+                const directResult = comparison > 0 ?
+                    this.toNumber() - other.toNumber() :
+                    other.toNumber() - this.toNumber();
+
+                if (Math.abs(directResult) <= PrimitiveConstants.MAX_SAFE_INTEGER) {
+                    return MegotaNumber.fromNumber(directResult * resultSign);
+                }
+
+                // For larger differences where direct calculation isn't reliable
+                // Calculate the difference for logarithmic subtraction
+                const logDiff = largerOp0 - Math.log10(smallerValue);
+
+                // Use logarithmic subtraction: 10^a - b = 10^a * (1 - b/10^a)
+                const newCoefficient = largerOp0 + Math.log10(1 - Math.pow(10, -logDiff));
+
+                // Create the result manually
+                result.array = [[0, 0, newCoefficient], [0, 1, 1]];
+                result.sign = resultSign;
+                return result.normalize();
+            }
+        }
+
+        // Higher order operations (tetration, etc.)
+        // For these cases, just return the larger number with appropriate sign
+        const ret = larger.clone();
+        ret.sign = resultSign;
+        return ret;
     }
 
     /**
@@ -1374,7 +1641,9 @@ export default class MegotaNumber {
         if (n <= PrimitiveConstants.MAX_SAFE_INTEGER)
             return MegotaNumber.fromNumber(n);
         return MegotaNumber.TEN.pow(x.log10().add(other.log10()));
-    }    /**
+    }
+
+    /**
      * Divides this MegotaNumber by another MegotaNumber.
      * 
      * This method handles division with special cases for signs, zero, infinity, and very large numbers.
@@ -1458,22 +1727,27 @@ export default class MegotaNumber {
 
         if (this.abs().greaterThan(MegotaNumber.RECIP_MAX))
             return MegotaNumber.ZERO.clone();
-        
+
         return MegotaNumber.fromNumber(1 / this.toNumber());
     }
 
     /**
      * Calculates the modulo of this MegotaNumber with another MegotaNumber.
      * 
+     * Note that this is not the same as the modulus operation in mathematics
+     * and returns the remainder of the division of this number by the other.
+     * 
+     * Hence, operations like `-7 % 3` will yield `-1`, not `2`.
+     * 
      * @param other The other MegotaNumber to calculate the modulo with.
      * @returns A new MegotaNumber that is the result of the modulo operation.
      */
     public modulo(other: MegotaNumber): MegotaNumber {
-        if (other.isNaN())
+        if (other.isNaN() || other.equals(MegotaNumber.ZERO))
             return MegotaNumber.NaN.clone();
 
-        if (other.equals(MegotaNumber.ZERO))
-            return MegotaNumber.ZERO.clone();
+        if (other.equals(MegotaNumber.POSITIVE_INFINITY))
+            return this.clone();
 
         if (this.sign * other.sign == -1)
             return this.abs().modulo(other.abs()).negate();
@@ -1600,13 +1874,7 @@ export default class MegotaNumber {
             return this.max(other);
 
         if (this.equals(MegotaNumber.TEN)) {
-            if (other.greaterThan(MegotaNumber.ZERO)) {
-                other.operator([0, 1], (other.operator([0, 1]) + 1) || 1);
-                other.normalize();
-                return other;
-            } else {
-                return MegotaNumber.fromNumber(Math.pow(10, other.toNumber()));
-            }
+            return MegotaNumber.tensPower(other);
         }
 
         if (other.lessThan(MegotaNumber.ONE))
@@ -1616,7 +1884,29 @@ export default class MegotaNumber {
         if (n <= PrimitiveConstants.MAX_SAFE_INTEGER)
             return MegotaNumber.fromNumber(n);
 
-        return MegotaNumber.TEN.pow(this.log10().mul(other));
+        return MegotaNumber.tensPower(this.log10().mul(other), true);
+    }
+
+    /**
+     * Raises 10 to the power of another MegotaNumber.
+     * 
+     * This method is used for operations involving powers of ten, such as scientific notation.
+     * 
+     * @param other The exponent MegotaNumber.
+     * @returns A new MegotaNumber that is 10 raised to the power of the other number.
+     */
+    protected static tensPower(other: MegotaNumber, inplace?: boolean): MegotaNumber {
+        if (inplace !== true) {
+            other = other.clone();
+        }
+
+        if (other.greaterThan(MegotaNumber.ZERO)) {
+            other.operator([0, 1], (other.operator([0, 1]) + 1) || 1);
+            other.normalize();
+            return other;
+        }
+
+        return MegotaNumber.fromNumber(Math.pow(10, other.toNumber()));
     }
 
     /**
@@ -1685,22 +1975,21 @@ export default class MegotaNumber {
      * 
      * @returns A new MegotaNumber that is the logarithm base 10 of this number.
      */
-    public log10(): MegotaNumber {
-        const x = this.clone();
-
-        if (x.lessThan(MegotaNumber.ZERO))
+    public log10(inplace?: boolean): MegotaNumber {
+        if (this.lessThan(MegotaNumber.ZERO))
             return MegotaNumber.NaN.clone();
 
-        if (x.equals(MegotaNumber.ZERO))
+        if (this.equals(MegotaNumber.ZERO))
             return MegotaNumber.NEGATIVE_INFINITY.clone();
 
-        if (x.lessThanOrEquals(MegotaNumber.MAX_SAFE_INTEGER))
-            return MegotaNumber.fromNumber(Math.log10(x.toNumber()));
+        if (this.lessThanOrEquals(MegotaNumber.MAX_SAFE_INTEGER))
+            return MegotaNumber.fromNumber(Math.log10(this.toNumber()));
 
-        if (!x.isFinite())
+        const x = inplace === true ? this : this.clone();
+        if (this.isInfinite())
             return x;
 
-        if (x.greaterThan(MegotaNumber.TETRATED_MAX_SAFE_INTEGER))
+        if (this.greaterThan(MegotaNumber.TETRATED_MAX_SAFE_INTEGER))
             return x;
 
         x.operator([0, 1], x.operator([0, 1]) - 1);
@@ -2451,7 +2740,7 @@ export default class MegotaNumber {
 
         return s;
     }
-    
+
     /**
      * Gets the index of the operator in the array.
      * 
@@ -2506,13 +2795,15 @@ export default class MegotaNumber {
             ? minIndex
             : minIndex + 0.5;
     }
-    
+
     /**
      * Gets or sets the operator value for a given index.
      * 
      * This method has dual functionality:
-     * 1. If called with just the operator coordinates, it returns the current value at that position
-     * 2. If called with both coordinates and a value, it sets the value at that position
+     * 1. If called with just the operator coordinates, it returns the current value at that position.
+     * 2. If called with both coordinates and a value, it sets the value at that position.
+     * 
+     * This function is always inplace, meaning it modifies the current MegotaNumber instance.
      * 
      * @param operatorCoordinates The coordinates of the operator in the form [layer, exponent].
      * @param value The value to set for the operator (optional).
