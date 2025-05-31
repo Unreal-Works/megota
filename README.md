@@ -5,7 +5,7 @@
     </picture>
 </h1>
 
-[![Build status](https://github.com/Unreal-Works/megota/actions/workflows/ci.yml/badge.svg?branch=master&event=push)](https://github.com/Unreal-Works/megota/actions/workflows/ci.yml)
+[![Build status](https://github.com/Unreal-Works/megota/actions/workflows/ci.yml/badge.svg?branch=master&event=push)](https://github.com/Unreal-Works/megota/actions/workflows/docs-deploy.yml)
 [![GitHub release](https://img.shields.io/github/release/Unreal-Works/megota.svg)](https://github.com/Unreal-Works/megota/releases/latest)
 [![CodeFactor](https://www.codefactor.io/repository/github/Unreal-Works/megota/badge)](https://www.codefactor.io/repository/github/Unreal-Works/megota)
 
