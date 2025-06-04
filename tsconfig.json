@@ -1,9 +1,10 @@
 {
     "compilerOptions": {
-        "target": "ESNext",
-        "module": "CommonJS",
-        "moduleResolution": "Node",
+        "target": "esnext",
+        "module": "es2022",
+        "moduleResolution": "node10",
         "esModuleInterop": true,
+        "isolatedModules": true,
         "declaration": true,
         "outDir": "./out",
         "strict": true,
@@ -12,10 +13,11 @@
         "lib": [
             "ESNext",
             "dom"
-        ]
+        ],
+        "strictFunctionTypes": true
     },
     "include": [
-        "src"
+        "src",
     ],
     "exclude": [
         "node_modules",
