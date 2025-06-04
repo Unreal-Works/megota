@@ -18,7 +18,7 @@
     "favicon": "assets/favicon.png",
     "entryPointStrategy": "expand",
     "entryPoints": [
-        "src/MegotaNumber.ts"
+        "src/index.ts"
     ],
     "katex": {
         "version": "0.11.1",

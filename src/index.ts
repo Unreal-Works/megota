@@ -390,9 +390,14 @@ export default class Megota implements BaseMegota {
      * Returns the Lambert W function of this number.
      * The Lambert W function is the inverse of f(x) = x*e^x
      * 
+     * @param principal If true, returns the principal branch (default is true).
      * @returns A new Megota instance with the Lambert W function result
      */
-    public lambertw = (): Megota => this.applyUnaryOperation(lambertw);
+    public lambertw = (principal?: boolean): Megota => {
+        const value = clone(this);
+        lambertw(value, principal);
+        return Megota.fromBaseMegota(value);
+    }
 
     /**
      * Returns the base-10 logarithm of this number.

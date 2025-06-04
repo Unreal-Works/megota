@@ -3,7 +3,7 @@
  * 
  * @param value The number represented as a {@link BaseMegota} to negate.
  */
-function negate(value: BaseMegota) {
+function negate(value: BaseMegota): void {
     value.sign *= -1;
 }
 

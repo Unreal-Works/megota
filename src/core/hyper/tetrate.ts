@@ -156,7 +156,7 @@ function tetrate(value: BaseMegota, other: BaseMegota, payload = MegotaConstants
         }
     }
 
-    if (i == 100 || lessThan(value, MegotaConstants.EXP_E_RECIP)) {
+    if (i === 100 || lessThan(value, MegotaConstants.EXP_E_RECIP)) {
         f = 0;
     }
     iop(r, [0, 1], f);

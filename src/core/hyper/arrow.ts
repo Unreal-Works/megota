@@ -6,7 +6,7 @@ import greaterThan from "../comparison/greaterThan";
 import lessThan from "../comparison/lessThan";
 import max from "../comparison/max";
 import { MegotaConfiguration } from "../Configuration";
-import { MegotaConstants } from "../constants";
+import { MegotaConstants, PrimitiveConstants } from "../constants";
 import toNumber from "../display/toNumber";
 import pow from "../exponential/pow";
 import mul from "../multiplicative/mul";
@@ -90,18 +90,18 @@ function arrow(value: BaseMegota, arrows: BaseMegota, other: BaseMegota, depth =
 
     const larger = max(value, other);
 
-    if (greaterThan(larger, fromString("10{" + (arrowsNum + 1) + "}" + MegotaConstants.MAX_SAFE_INTEGER))) {
+    if (greaterThan(larger, fromString("10{" + (arrowsNum + 1) + "}" + PrimitiveConstants.MAX_SAFE_INTEGER))) {
         return paste(value, larger);
     }
 
-    const greaterThanMaxSafe = greaterThan(larger, fromString("10{" + arrowsNum + "}" + MegotaConstants.MAX_SAFE_INTEGER));
+    const greaterThanMaxSafe = greaterThan(larger, fromString("10{" + arrowsNum + "}" + PrimitiveConstants.MAX_SAFE_INTEGER));
 
     if (greaterThanMaxSafe || greaterThan(other, MegotaConstants.MAX_SAFE_INTEGER)) {
         if (greaterThanMaxSafe) {
             iop(value, [0, arrowsNum], -1);
             normalize(value);
         }
-        else if (greaterThan(other, fromString("10{" + (arrowsNum - 1) + "}" + MegotaConstants.MAX_SAFE_INTEGER))) {
+        else if (greaterThan(other, fromString("10{" + (arrowsNum - 1) + "}" + PrimitiveConstants.MAX_SAFE_INTEGER))) {
             fromNumber(gop(value, [0, arrowsNum - 1]), value);
         }
         else {
@@ -132,7 +132,7 @@ function arrow(value: BaseMegota, arrows: BaseMegota, other: BaseMegota, depth =
     arrow(r, arrows_m1, fromNumber(y - f), depth + 1);
 
     let i: number, m: BaseMegota;
-    for (i = 0, m = fromString("10{" + (arrowsNum - 1) + "}" + MegotaConstants.MAX_SAFE_INTEGER); f !== 0 && lessThan(r, m) && i < 100; ++i) {
+    for (i = 0, m = fromString("10{" + (arrowsNum - 1) + "}" + PrimitiveConstants.MAX_SAFE_INTEGER); f !== 0 && lessThan(r, m) && i < 100; ++i) {
         if (f > 0) {
             const r1 = clone(value);
             arrow(r1, arrows_m1, r, depth + 1);
@@ -141,11 +141,12 @@ function arrow(value: BaseMegota, arrows: BaseMegota, other: BaseMegota, depth =
         }
     }
 
-    if (i == 100)
+    if (i === 100)
         f = 0;
 
     iop(r, [0, arrowsNum - 1], f);
     normalize(r);
+    paste(value, r);
     return;
 }
 
